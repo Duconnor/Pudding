@@ -2,6 +2,6 @@
 
 namespace pudding {
     int kmeans() {
-        std::cout << "Running cpp kmeans!!" << std::endl;
+        return 1;
     }
 }
