@@ -8,11 +8,5 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-# Enable test
-add_executable(testKmeans "clustering/testKmeans.cc")
-
-# The test should be linked to both the main library and the Catch2 testing library
-target_link_libraries(testKmeans PRIVATE pudding Catch2::Catch2)
-
-# Register the test
-add_test(NAME testKmeansTest COMMAND testKmeans)
+# Enable the unit test
+add_subdirectory(unittest)
