@@ -8,5 +8,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
+# Create a test-time helper function library (a header only lib) so that all tests can use it
+add_library(puddingtesthelper INTERFACE)
+target_include_directories(puddingtesthelper INTERFACE helper/)
+
 # Enable the unit test
 add_subdirectory(unittest)

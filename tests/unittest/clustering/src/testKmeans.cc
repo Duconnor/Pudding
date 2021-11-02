@@ -1,9 +1,45 @@
 #define CATCH_CONFIG_MAIN
+#include <vector>
+#include <cstdlib>
+#include <iostream>
+
 #include <catch2/catch.hpp>
 #include <pudding/clustering.h>
 
-TEST_CASE ("Test kmeans", "[kmeans]") {
-    int res = pudding::kmeans();
+#include <helper.h>
 
-    REQUIRE( res == 1 );
+
+/*
+ * This test case checks kmeans using a toy dataset
+ */
+TEST_CASE ("Test CPU kmeans", "[kmeans]") {
+    int numSamples = 4;
+    int numFeatures = 2;
+    int numCenters = 2;
+    int maxNumIteration = 1;
+    float tolerance = 1.0;
+    bool cudaEnabled = false;
+    std::vector<std::vector<float>> X = {{0.0, 0.0}, {0.5, 0.0}, {0.5, 1.0}, {1.0, 1.0}};
+    std::vector<std::vector<float>> initCenters = {{0.0, 0.0}, {1.0, 1.0}};
+
+    std::vector<int> expectedMemberships = {0, 0, 1, 1};
+    std::vector<std::vector<float>> expectedCenters = {{0.125, 0.0}, {0.875, 1.0}};
+
+    float* centers = (float*)malloc(sizeof(float) * numCenters * numFeatures);
+    int* membership = (int*)malloc(sizeof(int) * numCenters);
+
+    pudding::kmeans(flatten(X).data(), flatten(initCenters).data(), numSamples, numFeatures, numCenters, maxNumIteration, tolerance, cudaEnabled, centers, membership);
+
+    std::vector<float> vecCenters(centers, centers + (numCenters * numFeatures));
+    std::vector<int> vecMembership(membership, membership + numSamples);
+
+    REQUIRE_THAT(vecCenters, Catch::Approx(flatten(expectedCenters)));
+    REQUIRE(vecMembership == expectedMemberships);
+
+    if (centers) {
+        free(centers);
+    }
+    if (membership) {
+        free(membership);
+    }
 }
