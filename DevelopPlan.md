@@ -1,7 +1,7 @@
-# Pudding: Running scikit-learn on Nvidia's GPUs
+# Pudding: Running common machine learning algorithms on Nvidia's GPUs
 
 ## Goal
-Providing GPU support for existing machine learning algorithms provided in scikit-learn.  
+Providing GPU support for some common existing machine learning algorithms.  
 Start simple (k-means clustering).  
 Unit test for every module.  
 
