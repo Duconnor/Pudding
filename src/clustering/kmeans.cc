@@ -1,6 +1,3 @@
-#include <pudding/clustering.h>
-#include <helper.h>
-
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
@@ -8,6 +5,9 @@
 #include <assert.h>
 
 #include <iostream>
+
+#include <pudding/clustering.h>
+#include "../helper/helper.h"
 
 /* CPU-version of KMeans */
 void _kmeansCPU(float* X, float* initCenters, int numSamples, int numFeatures, int numCenters, int maxNumIteration, float tolerance, float* centers, int* membership, int* numIterations) {

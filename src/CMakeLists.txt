@@ -14,8 +14,7 @@ set(SOURCE_LIST "clustering/kmeans.cc")
 add_library(pudding SHARED "${SOURCE_LIST}" "${HEADER_LIST}" "${HELPER_HEADER_LIST}")
 
 # The header files are needed to use the library
-target_include_directories(pudding PUBLIC "${PROJECT_SOURCE_DIR}/include"
-                                   PRIVATE "${PROJECT_SOURCE_DIR}/src/helper")
+target_include_directories(pudding PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 # At least C++ 11 is needed
 target_compile_features(pudding PUBLIC cxx_std_11)
