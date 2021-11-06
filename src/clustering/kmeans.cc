@@ -10,7 +10,7 @@
 #include "../helper/helper.h"
 
 /* CPU-version of KMeans */
-void _kmeansCPU(float* X, float* initCenters, int numSamples, int numFeatures, int numCenters, int maxNumIteration, float tolerance, float* centers, int* membership, int* numIterations) {
+void _kmeansCPU(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, float* centers, int* membership, int* numIterations) {
     /*
     * KMeans algorithm:
     * 1. Initialize the centroids -> this is already done
@@ -89,9 +89,12 @@ void _kmeansCPU(float* X, float* initCenters, int numSamples, int numFeatures, i
     *numIterations = iterationCount;
 }
 
-void kmeans(float* X, float* initCenters, int numSamples, int numFeatures, int numCenters, int maxNumIteration, float tolerance, bool cudaEnabled, float* centers, int* membership, int* numIterations) {
+/* GPU versions of KMeans, implemented in kmeans.cu */
+extern void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, float* centers, int* membership, int* numIterations);
+
+void kmeans(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, const bool cudaEnabled, float* centers, int* membership, int* numIterations) {
     if (cudaEnabled) {
-        assert(false);
+        _kmeansGPU(X, initCenters, numSamples, numFeatures, numCenters, maxNumIteration, tolerance, centers, membership, numIterations);
     } else {
         _kmeansCPU(X, initCenters, numSamples, numFeatures, numCenters, maxNumIteration, tolerance, centers, membership, numIterations);
     }
