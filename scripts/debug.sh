@@ -1,1 +1,1 @@
-cd build; rm -rf *; cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --verbose
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --verbose

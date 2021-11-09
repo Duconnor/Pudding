@@ -1,1 +1,1 @@
-./build/tests/unittest/clustering/testKmeans [kmeans-cpu-gpu]
+./build/tests/unittest/clustering/testKmeans

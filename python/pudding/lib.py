@@ -1,5 +1,5 @@
 '''
-This file is responsible for loading the C++ dynamic library
+This file is responsible for loading the C shared library
 '''
 import ctypes
 

@@ -45,7 +45,7 @@ void updateCentersKernel(const float* X, const int* membership, float* centers, 
      */
     int idxCenter = threadIdx.x + blockIdx.x * blockDim.x;
     
-    while (idxCenter < numSamples) {
+    while (idxCenter < numCenters) {
 
         for (int i = 0; i < numSamples; i++) {
             if (membership[i] == idxCenter) {
