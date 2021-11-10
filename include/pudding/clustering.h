@@ -16,6 +16,8 @@
  * @param membership The assignment of each data to the corresponding center, of shape (numSamples)
  * @param numIterations The number of iterations performed
  */
-void kmeans(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, const bool cudaEnabled, float* centers, int* membership, int* numIterations);
+extern "C" void kmeans(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, const bool cudaEnabled, float* centers, int* membership, int* numIterations);
+
+extern "C" void puddingPrint(const float* X, const int nSamples, const int nFeatures, float* newX);
 
 #endif

@@ -13,7 +13,7 @@ VERSION = '0.1.0'
 
 # Required packages
 REQUIRED = [
-
+    'numpy',
 ]
 
 # Optional packages

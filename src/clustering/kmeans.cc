@@ -100,3 +100,13 @@ void kmeans(const float* X, const float* initCenters, const int numSamples, cons
     }
     return;
 }
+
+void puddingPrint(const float* X, const int nSamples, const int nFeatures, float* newX) {
+    for (int i = 0; i < nSamples; i++) {
+        for (int j = 0; j < nFeatures; j++) {
+            std::cout << X[i * nFeatures + j] <<  " ";
+            newX[i * nFeatures + j] = X[i * nFeatures + j] + 0.5;
+        }
+        std::cout << std::endl;
+    }
+}
