@@ -2,13 +2,14 @@
 KMeans clustering related functions
 '''
 
+from scipy.sparse.construct import rand
 from ..lib import _LIB
 import ctypes
 import numpy as np
 
 CONTIGUOUS_FLAG = 'C_CONTIGUOUS'
 
-def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_enabled=False) -> tuple:
+def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_enabled=False, rand_seed=0) -> tuple:
     '''
     Perform kmeans clustering on the given data
 
@@ -19,6 +20,7 @@ def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_e
         - max_iter: maximum number of iterations
         - tol: tolerance for determine coverage and end the algorithm
         - cuda_enabled: whether to use the GPU version
+        - rand_seed: the random state
 
     Return: a tuple of (centers, membership, n_iter)
         - centers: a 2D array, of shape (n_clusters, n_features)
@@ -26,9 +28,12 @@ def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_e
         - n_iter: a int, the number of iterations actually performs
     '''
 
-    # Post-condition check
+    # Pre-condition check
     if initial_centers is not None and len(X) != 0:
         assert len(initial_centers) == n_clusters and len(initial_centers[0]) == len(X[0])
+
+    # Set the random seed
+    np.random.seed(rand_seed)
 
     # Prepare the data
     np_X = np.array(X).astype(np.float32)
