@@ -6,6 +6,20 @@
 
 #include "../helper/helperCUDA.h"
 
+void copyToHostAndDisplayFloat(const float* devicePtr, int row, int col) {
+    float* debug = (float*)malloc(sizeof(float) * row * col);
+    CUDA_CALL( cudaMemcpy(debug, devicePtr, sizeof(float) * row * col, cudaMemcpyDeviceToHost) );
+    for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+            std::cout << debug[i * col + j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    if (debug) {
+        free(debug);
+    }
+}
+
 __global__
 void computeDistanceKernel(const float* X, const float* centers, float* distances, const int numSamples, const int numFeatures, const int numCenters) {
     int threadId = threadIdx.x + blockIdx.x * blockDim.x;
@@ -132,7 +146,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
             float one = 1, negOne = -1;
             // Careful here, cuBlas assumes column major storage
             // Perform element-wise subtraction
-            CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, numFeatures, numSamples, &one, deviceOldCenters, numFeatures, &negOne, deviceCenters, numFeatures, deviceOldCenters, numFeatures) );
+            CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, numFeatures, numCenters, &one, deviceOldCenters, numFeatures, &negOne, deviceCenters, numFeatures, deviceOldCenters, numFeatures) );
             float diff = 0.0;
             // Compute the F-norm
             CUBLAS_CALL( cublasSdot(cublasHandle, numCenters * numFeatures, deviceOldCenters, 1, deviceOldCenters, 1, &diff) );

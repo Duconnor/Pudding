@@ -28,15 +28,43 @@ def testKmeansToyData():
         assert center == pytest.approx(expected_center)
     assert expected_iterations == n_iterations
 
-def testKmeansSKlearn():
+def testKmeansCPUGPU():
     '''
-    Test our implementation with some randomly generated data
+    Test our implementation with some randomly generated data between the CPU and GPU version
     '''
 
     # Generate random data
     seed = 0
     np.random.seed(seed)
     n_examples = 3000
+    truth_centers = [[1, 1], [-1, -1], [1, -1]]
+    X, _ = make_blobs(n_samples=n_examples, centers=truth_centers, cluster_std=0.7)
+
+    
+    # Our implementation CPU
+    our_cpu_centers, our_cpu_membership, our_cpu_n_iter = pudding.clustering.kmeans(X, n_clusters=3, cuda_enabled=False, rand_seed=seed)
+
+    # Our implementation GPU
+    our_gpu_centers, our_gpu_membership, our_gpu_n_iter = pudding.clustering.kmeans(X, n_clusters=3, cuda_enabled=True, rand_seed=seed)
+
+    # Assertions
+    assert our_cpu_membership == our_gpu_membership
+
+    for our_cpu_center, our_gpu_center in zip(our_cpu_centers, our_gpu_centers):
+        assert our_cpu_center == pytest.approx(our_gpu_center)
+
+    assert our_cpu_n_iter == our_gpu_n_iter
+
+
+def testKmeansCPUGPULarge():
+    '''
+    Test our implementation with some randomly generated data between the CPU and GPU version using a larger number of data pooints
+    '''
+
+    # Generate random data
+    seed = 0
+    np.random.seed(seed)
+    n_examples = 1000000
     truth_centers = [[1, 1], [-1, -1], [1, -1]]
     X, _ = make_blobs(n_samples=n_examples, centers=truth_centers, cluster_std=0.7)
 
