@@ -28,3 +28,6 @@ target_compile_features(pudding PUBLIC cxx_std_11)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-G>)
 endif()
+
+# For automatical optimization
+target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas -O3>)
