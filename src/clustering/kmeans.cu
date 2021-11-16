@@ -58,30 +58,88 @@ void determineMembershipKernel(const float* X, const float* centers, int* member
 }
 
 __global__
-void updateCentersKernel(const float* X, const int* membership, float* centers, int* numSamplesThisCenter, const int numSamples, const int numFeatures, const int numCenters) {
-    /*
-     * Pre-condition: centers and numSamplesThisCenter are initialized to all zeros
-     */
-    int idxCenter = threadIdx.x + blockIdx.x * blockDim.x;
-    
-    while (idxCenter < numCenters) {
+void updateCentersKernel(const float* X, const int* membership, float* centers, int* deviceSamplesCount, const int idxCenter, const int numSamples, const int numFeatures, const int numCenters) {
+    // For updating every center, this kernel will be invoked once
+    // In this kernel, we perform a reduction sum
+    int idxSample = threadIdx.x + blockIdx.x * blockDim.x;
 
-        for (int i = 0; i < numSamples; i++) {
-            if (membership[i] == idxCenter) {
-                for (int j = 0; j < numFeatures; j++) {
-                    centers[j * numCenters + idxCenter] += X[j * numSamples + i];
+    extern __shared__ float sharedMem[];
+
+    float* sharedX = sharedMem;
+    const int numSamplesSharedMem = blockDim.x;
+    int* sharedSampleCount = (int*)(sharedMem + (numSamplesSharedMem * numFeatures));
+
+    const int idxSampleSharedMem = threadIdx.x;
+
+    for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
+        sharedX[idxFeature * numSamplesSharedMem + idxSampleSharedMem] = 0;
+    }
+    sharedSampleCount[idxSampleSharedMem] = 0;
+    __syncthreads();
+
+    while (idxSample < numSamples) {
+        // Initialize the shared memory
+        int member = membership[idxSample];
+        sharedSampleCount[idxSampleSharedMem] = member == idxCenter;
+        for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
+            sharedX[idxFeature * numSamplesSharedMem + idxSampleSharedMem] = X[idxFeature * numSamples + idxSample] * (member == idxCenter);
+        }
+        __syncthreads();
+
+        // Reduction begin here
+        int range = blockDim.x;
+        for (int i = 0; i < (int)log2((float)blockDim.x); i++) {
+            range /= 2;
+            if (idxSampleSharedMem < range) {
+                sharedSampleCount[idxSampleSharedMem] += sharedSampleCount[idxSampleSharedMem + range];
+                sharedSampleCount[idxSampleSharedMem + range] = 0;
+                for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
+                    sharedX[idxFeature * numSamplesSharedMem + idxSampleSharedMem] += sharedX[idxFeature * numSamplesSharedMem + (idxSampleSharedMem + range)];
+                    sharedX[idxFeature * numSamplesSharedMem + (idxSampleSharedMem + range)] = 0;
                 }
-                numSamplesThisCenter[idxCenter]++;
+            }
+            __syncthreads();
+        }
+
+        // Use atomic operation to accumulate the result in global memory
+        if (threadIdx.x == 0) {
+            atomicAdd(deviceSamplesCount, sharedSampleCount[0]);
+            sharedSampleCount[0] = 0;
+            for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
+                atomicAdd(centers + (idxFeature * numCenters + idxCenter), sharedX[idxFeature * numSamplesSharedMem]);
+                sharedX[idxFeature * numSamplesSharedMem] = 0;
             }
         }
 
-        for (int j = 0; j < numFeatures; j++) {
-            centers[j * numCenters + idxCenter] /= numSamplesThisCenter[idxCenter];
-        }
-
-        idxCenter += gridDim.x * blockDim.x;
+        idxSample += gridDim.x * blockDim.x;
     }
 }
+
+// __global__
+// void updateCentersKernel(const float* X, const int* membership, float* centers, int* numSamplesThisCenter, const int numSamples, const int numFeatures, const int numCenters) {
+//     /*
+//      * Pre-condition: centers and numSamplesThisCenter are initialized to all zeros
+//      */
+//     int idxCenter = threadIdx.x + blockIdx.x * blockDim.x;
+    
+//     while (idxCenter < numCenters) {
+
+//         for (int i = 0; i < numSamples; i++) {
+//             if (membership[i] == idxCenter) {
+//                 for (int j = 0; j < numFeatures; j++) {
+//                     centers[j * numCenters + idxCenter] += X[j * numSamples + i];
+//                 }
+//                 numSamplesThisCenter[idxCenter]++;
+//             }
+//         }
+
+//         for (int j = 0; j < numFeatures; j++) {
+//             centers[j * numCenters + idxCenter] /= numSamplesThisCenter[idxCenter];
+//         }
+
+//         idxCenter += gridDim.x * blockDim.x;
+//     }
+// }
 
 /* GPU version of KMeans */
 void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, float* centers, int* membership, int* numIterations) {
@@ -102,17 +160,23 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     // Malloc space on GPU
     float* deviceX;
     float* deviceCenters;
-    float* deviceDistance;
     int* deviceMembership;
-    int* deviceNumSamplesThisCenter;
     float* deviceOldCenters;
+    int* deviceSamplesCount;
+    // These are temporary array here for transpose
+    float* tempDeviceX;
+    float* tempDeviceCenters;
 
     CUDA_CALL( cudaMalloc(&deviceX, sizeof(float) * numSamples * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceCenters, sizeof(float) * numCenters * numFeatures) );
-    CUDA_CALL( cudaMalloc(&deviceDistance, sizeof(float) * numSamples * numCenters) );
     CUDA_CALL( cudaMalloc(&deviceMembership, sizeof(int) * numSamples) );
-    CUDA_CALL( cudaMalloc(&deviceNumSamplesThisCenter, sizeof(int) * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceOldCenters, sizeof(float) * numCenters * numFeatures) );
+    CUDA_CALL( cudaMalloc(&deviceSamplesCount, sizeof(int)) );
+    CUDA_CALL( cudaMalloc(&tempDeviceX, sizeof(float) * numSamples * numFeatures) );
+    CUDA_CALL( cudaMalloc(&tempDeviceCenters, sizeof(float) * numCenters * numFeatures) );
+
+    // Malloc space on CPU
+    int* samplesCount = (int*)malloc(sizeof(int));
 
     // Determine the block width
     const int BLOCKWIDTH = 1024;
@@ -120,69 +184,43 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     // Initialize the cublas handle
     cublasHandle_t cublasHandle;
     cublasCreate(&cublasHandle);
+    // These are useful when calling cublas functions
+    float one = 1.0, zero = 0.0, negOne = -1.0;
 
     // Transpose deviceX, deviceCenters here to enable coalesced memory access in the kernel
-    float one = 1.0, zero = 0.0;
-
-    // Allocate temporary array here for transpose
-    float* tempDeviceX;
-    float* tempDeviceCenters;
-
-    CUDA_CALL( cudaMalloc(&tempDeviceX, sizeof(float) * numSamples * numFeatures) );
-    CUDA_CALL( cudaMalloc(&tempDeviceCenters, sizeof(float) * numCenters * numFeatures) );
-
     CUDA_CALL( cudaMemcpy(tempDeviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
     CUDA_CALL( cudaMemcpy(tempDeviceCenters, centers, sizeof(float) * numCenters * numFeatures, cudaMemcpyHostToDevice) );
 
     CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numSamples, numFeatures, &one, tempDeviceX, numFeatures, &zero, tempDeviceX, numSamples, deviceX, numSamples) );
     CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numCenters, numFeatures, &one, tempDeviceCenters, numFeatures, &zero, tempDeviceCenters, numCenters, deviceCenters, numCenters) );
 
-    while (!endFlag) {
-        cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        float ellapsed = 0.0;
-        
+    while (!endFlag) {        
         // Determine the membership of each sample
         int numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
-        int numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + sizeof(float) * numCenters * numFeatures;
-        cudaEventRecord(start, 0);
-        
-        determineMembershipKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceCenters, deviceMembership, numSamples, numFeatures, numCenters);
-
-        cudaEventRecord(stop, 0);
-        cudaEventSynchronize(stop);
-        ellapsed = 0.0;
-        cudaEventElapsedTime(&ellapsed, start, stop);
-        std::cout << "Compute membership: " << ellapsed << std::endl;  
+        int numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + sizeof(float) * numCenters * numFeatures;        
+        determineMembershipKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceCenters, deviceMembership, numSamples, numFeatures, numCenters);;  
 
         // Save the result of old centers
         CUDA_CALL( cudaMemcpy(deviceOldCenters, deviceCenters, sizeof(float) * numCenters * numFeatures, cudaMemcpyDeviceToDevice) );
         CUDA_CALL( cudaMemset(deviceCenters, 0, sizeof(float) * numCenters * numFeatures));
 
         // Update the center estimation
-        CUDA_CALL( cudaMemset(deviceNumSamplesThisCenter, 0, sizeof(int) * numSamples) );
-        numBlock = min(65535, ((numCenters) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+        numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+        numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + BLOCKWIDTH * sizeof(float);
 
-        cudaEventRecord(start, 0);
-
-        updateCentersKernel<<<numBlock, BLOCKWIDTH>>>(deviceX, deviceMembership, deviceCenters, deviceNumSamplesThisCenter, numSamples, numFeatures, numCenters);
-
-        cudaEventRecord(stop, 0);
-        cudaEventSynchronize(stop);
-        ellapsed = 0.0;
-        cudaEventElapsedTime(&ellapsed, start, stop);
-        std::cout << "Update center: " << ellapsed << std::endl;
-
-        cudaEventDestroy(start);
-        cudaEventDestroy(stop);
+        for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
+            CUDA_CALL( cudaMemset(deviceSamplesCount, 0, sizeof(int)) );
+            updateCentersKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceMembership, deviceCenters, deviceSamplesCount, idxCenter, numSamples, numFeatures, numCenters);
+            CUDA_CALL( cudaMemcpy(samplesCount, deviceSamplesCount, sizeof(int), cudaMemcpyDeviceToHost) );
+            float scale = 1.0 / (*samplesCount);
+            CUBLAS_CALL( cublasSscal(cublasHandle, numFeatures, &scale, deviceCenters + idxCenter, numCenters) );
+        }
 
         // Test for coverage
         iterationCount++;
         if (iterationCount >= maxNumIteration) {
             endFlag = true;
         } else {
-            float negOne = -1.0;
             // Careful here, cuBlas assumes column major storage
             // Perform element-wise subtraction
             CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, numCenters, numFeatures, &one, deviceOldCenters, numCenters, &negOne, deviceCenters, numCenters, deviceOldCenters, numCenters) );
@@ -207,10 +245,16 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     // Free all resources on GPU
     CUDA_CALL( cudaFree(deviceX) );
     CUDA_CALL( cudaFree(deviceCenters) );
-    CUDA_CALL( cudaFree(deviceDistance) );
     CUDA_CALL( cudaFree(deviceMembership) );
-    CUDA_CALL( cudaFree(deviceNumSamplesThisCenter) );
     CUDA_CALL( cudaFree(deviceOldCenters) );
+    CUDA_CALL( cudaFree(deviceSamplesCount) );
+    CUDA_CALL( cudaFree(tempDeviceCenters) );
+    CUDA_CALL( cudaFree(tempDeviceX) );
+
+    // Free resources on CPU
+    if (samplesCount) {
+        free(samplesCount);
+    }
 
     CUDA_CALL( cublasDestroy(cublasHandle) );
     return;

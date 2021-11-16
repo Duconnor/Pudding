@@ -14,7 +14,7 @@ def benchmarking_kmeans():
     seed = 0
     np.random.seed(seed)
     n_examples = 100000
-    n_clusters = 128
+    n_clusters = 32
     X, _ = make_blobs(n_samples=n_examples, centers=n_clusters, cluster_std=1)    
 
     

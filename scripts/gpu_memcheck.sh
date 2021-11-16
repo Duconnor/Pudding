@@ -1,1 +1,1 @@
-cuda-memcheck ./build/tests/unittest/clustering/testKmeans
+cuda-memcheck ./build/tests/unittest/clustering/testKmeans [kmeans-cpu-gpu]

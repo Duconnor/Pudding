@@ -1,1 +1,1 @@
-valgrind ./build/tests/unittest/clustering/testKmeans
+valgrind ./build/tests/unittest/clustering/testKmeans [kmeans-cpu-gpu]
