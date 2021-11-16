@@ -13,13 +13,39 @@ void determineMembershipKernel(const float* X, const float* centers, int* member
     // Each thread is responsible for each data point
     int idxSample = threadIdx.x + blockIdx.x * blockDim.x;
 
+    // Use shared memory to accelerate computation
+    // We copy X and centers to shared memory to avoid unnecessary global memory access
+    extern __shared__ float sharedMem[];
+
+    float* sharedX = sharedMem;
+    // Each block has blockDim.x threads, and each threads is responsible for one data point
+    // Therefore, in each block, the shared memory allocated for X is blockDim.x * numFeatures in total
+    const int numSamplesThisBlock = blockDim.x;
+    float* sharedCenters = sharedMem + (numSamplesThisBlock * numFeatures);
+    
+    const int idxSampleSharedMem = threadIdx.x;
+
+    // The first 'numCenters' threads in this block are responsible for loading the data of centers
+    if (threadIdx.x < numCenters) {
+        for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
+            sharedCenters[idxFeature * numCenters + threadIdx.x] = centers[idxFeature * numCenters + threadIdx.x];
+        }
+    }
+    __syncthreads();
+
     while (idxSample < numSamples) {
+        // Load this block's data into the shared memory
+        for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
+            sharedX[idxFeature * numSamplesThisBlock + idxSampleSharedMem] = X[idxFeature * numSamples + idxSample];
+        }
+        __syncthreads();
+
         float minDist = FLT_MAX;
         int minDistIdx = -1;
         for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
             float dist = 0;
             for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
-                dist += pow(X[idxFeature * numSamples + idxSample] - centers[idxFeature * numCenters + idxCenter], 2);
+                dist += pow(sharedX[idxFeature * numSamplesThisBlock + idxSampleSharedMem] - sharedCenters[idxFeature * numCenters + idxCenter], 2);
             }
             if (minDistIdx == -1 || minDist > dist) {
                 minDist = dist;
@@ -112,20 +138,17 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numCenters, numFeatures, &one, tempDeviceCenters, numFeatures, &zero, tempDeviceCenters, numCenters, deviceCenters, numCenters) );
 
     while (!endFlag) {
-        // Compute the distance between samples and clusters
-        int numBlock = min(65535, ((numSamples * numCenters) + BLOCKWIDTH - 1) / BLOCKWIDTH);
-        CUDA_CALL( cudaMemset(deviceDistance, 0, sizeof(float) * numSamples * numCenters) );
-
         cudaEvent_t start, stop;
         cudaEventCreate(&start);
         cudaEventCreate(&stop);
         float ellapsed = 0.0;
         
         // Determine the membership of each sample
-        numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+        int numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+        int numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + sizeof(float) * numCenters * numFeatures;
         cudaEventRecord(start, 0);
         
-        determineMembershipKernel<<<numBlock, BLOCKWIDTH>>>(deviceX, deviceCenters, deviceMembership, numSamples, numFeatures, numCenters);
+        determineMembershipKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceCenters, deviceMembership, numSamples, numFeatures, numCenters);
 
         cudaEventRecord(stop, 0);
         cudaEventSynchronize(stop);
