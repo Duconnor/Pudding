@@ -115,32 +115,6 @@ void updateCentersKernel(const float* X, const int* membership, float* centers, 
     }
 }
 
-// __global__
-// void updateCentersKernel(const float* X, const int* membership, float* centers, int* numSamplesThisCenter, const int numSamples, const int numFeatures, const int numCenters) {
-//     /*
-//      * Pre-condition: centers and numSamplesThisCenter are initialized to all zeros
-//      */
-//     int idxCenter = threadIdx.x + blockIdx.x * blockDim.x;
-    
-//     while (idxCenter < numCenters) {
-
-//         for (int i = 0; i < numSamples; i++) {
-//             if (membership[i] == idxCenter) {
-//                 for (int j = 0; j < numFeatures; j++) {
-//                     centers[j * numCenters + idxCenter] += X[j * numSamples + i];
-//                 }
-//                 numSamplesThisCenter[idxCenter]++;
-//             }
-//         }
-
-//         for (int j = 0; j < numFeatures; j++) {
-//             centers[j * numCenters + idxCenter] /= numSamplesThisCenter[idxCenter];
-//         }
-
-//         idxCenter += gridDim.x * blockDim.x;
-//     }
-// }
-
 /* GPU version of KMeans */
 void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, float* centers, int* membership, int* numIterations) {
     /*
