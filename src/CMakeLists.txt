@@ -5,12 +5,14 @@ cmake_minimum_required(VERSION 3.18)
 set(HEADER_LIST "${PROJECT_SOURCE_DIR}/include/pudding/clustering.h")
 
 # We also define some useful helper functions in the header file
-set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/src/helper/helper.h"
-                       "${PROJECT_SOURCE_DIR}/src/helper/helperCUDA.h")
+set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/include/helper/helper.h"
+                       "${PROJECT_SOURCE_DIR}/include/helper/helperCUDA.h"
+                       "${PROJECT_SOURCE_DIR}/include/helper/helper.cuh")
 
 # Grap source files
 set(SOURCE_LIST "clustering/kmeans.cc"
-                "clustering/kmeans.cu")
+                "clustering/kmeans.cu"
+                "helper/helper.cu")
 
 # Build a shared library
 add_library(pudding SHARED "${SOURCE_LIST}" "${HEADER_LIST}" "${HELPER_HEADER_LIST}")

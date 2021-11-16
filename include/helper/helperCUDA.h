@@ -12,8 +12,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // These are CUDA Helper functions for initialization and error checking
 
-#ifndef HELPER_CUDA_H
-#define HELPER_CUDA_H
+#ifndef HELPER_HELPER_CUDA_H
+#define HELPER_HELPER_CUDA_H
 
 #pragma once
 

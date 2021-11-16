@@ -1,0 +1,1 @@
+cuda-memcheck ./build/tests/unittest/clustering/testKmeans

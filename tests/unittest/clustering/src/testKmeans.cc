@@ -155,7 +155,7 @@ TEST_CASE ("Test GPU kmeans using the CPU version using a large number of exampl
     int numSamples = 1000000;
     int numFeatures = 10;
     int numCenters = 5;
-    int maxNumIteration = 100;
+    int maxNumIteration = 1;
     float tolerance = 1e-4;
     std::vector<std::vector<float>> X(numSamples, std::vector<float>(numFeatures, 0.0));
     for (int i = 0; i < numSamples; i++) {

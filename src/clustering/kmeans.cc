@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include <pudding/clustering.h>
-#include "../helper/helper.h"
+#include <helper/helper.h>
 
 /* CPU-version of KMeans */
 void _kmeansCPU(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, float* centers, int* membership, int* numIterations) {
