@@ -33,3 +33,6 @@ endif()
 
 # For automatical optimization
 target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas -O3>)
+
+# Generate code for arch 60
+set_property(TARGET pudding PROPERTY CUDA_ARCHITECTURES 60)

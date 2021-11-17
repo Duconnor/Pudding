@@ -9,7 +9,7 @@ import numpy as np
 
 CONTIGUOUS_FLAG = 'C_CONTIGUOUS'
 
-def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_enabled=False, rand_seed=0) -> tuple:
+def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_enabled=False, rand_seed=None) -> tuple:
     '''
     Perform kmeans clustering on the given data
 
@@ -33,7 +33,8 @@ def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_e
         assert len(initial_centers) == n_clusters and len(initial_centers[0]) == len(X[0])
 
     # Set the random seed
-    np.random.seed(rand_seed)
+    if rand_seed is not None:
+        np.random.seed(rand_seed)
 
     # Prepare the data
     np_X = np.array(X).astype(np.float32)

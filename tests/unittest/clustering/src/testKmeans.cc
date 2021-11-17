@@ -87,7 +87,7 @@ TEST_CASE ("Test GPU kmeans", "[kmeans-gpu]") {
 TEST_CASE ("Test GPU kmeans using the CPU version", "[kmeans-cpu-gpu]") {
     std::srand(0);
 
-    int numSamples = 50000;
+    int numSamples = 500;
     int numFeatures = 10;
     int numCenters = 5;
     int maxNumIteration = 100;
@@ -131,9 +131,8 @@ TEST_CASE ("Test GPU kmeans using the CPU version", "[kmeans-cpu-gpu]") {
     std::vector<float> vecCentersGPU(centersGPU, centersGPU + (numCenters * numFeatures));
     std::vector<int> vecMembershipGPU(membershipGPU, membershipGPU + numSamples);
 
-    // Since in the CPU version, we use the naive way to perform summation. Error gets cumulated quickly as
-    // the number of examples grows. Therefore, here we need to use a larger epsilon and don't compare the membership.
-    REQUIRE_THAT(vecCentersCPU, Catch::Approx(vecCentersGPU).epsilon(1e-1));
+    REQUIRE_THAT(vecCentersCPU, Catch::Approx(vecCentersGPU));
+    REQUIRE(vecMembershipCPU == vecMembershipGPU);
     REQUIRE(numIterationsCPU == numIterationsGPU);
 
     if (centersCPU) {
@@ -197,6 +196,9 @@ TEST_CASE ("Test GPU kmeans using the CPU version using a large number of exampl
     std::vector<float> vecCentersGPU(centersGPU, centersGPU + (numCenters * numFeatures));
     std::vector<int> vecMembershipGPU(membershipGPU, membershipGPU + numSamples);
 
+    // Since in the CPU version, we use the naive way to perform summation. Error gets cumulated quickly as
+    // the number of examples grows. Therefore, we need to use a large epsilon when comparing centers 
+    // and the comparision of membership is meaningless here.
     REQUIRE_THAT(vecCentersCPU, Catch::Approx(vecCentersGPU).epsilon(1e-1));
     REQUIRE(numIterationsCPU == numIterationsGPU);
 
@@ -211,5 +213,75 @@ TEST_CASE ("Test GPU kmeans using the CPU version using a large number of exampl
     }
     if (membershipGPU) {
         free(membershipGPU);
+    }
+}
+
+TEST_CASE ("Test CPU kmeans with empty cluster", "[kmeans-cpu-empty-cluster]") {
+    int numSamples = 4;
+    int numFeatures = 2;
+    int numCenters = 2;
+    int maxNumIteration = 10;
+    int numIterations = 0;
+    float tolerance = 1e-4;
+    bool cudaEnabled = false;
+    std::vector<std::vector<float>> X = {{0.0, 0.0}, {0.5, 0.0}, {0.5, 1.0}, {1.0, 1.0}};
+    std::vector<std::vector<float>> initCenters = {{0.0, 0.0}, {10.0, 10.0}};
+
+    std::vector<int> expectedMemberships = {0, 0, 0, 0};
+    std::vector<std::vector<float>> expectedCenters = {{0.5, 0.5}, {10.0, 10.0}};
+    int expectedNumIterations = 2;
+
+    float* centers = (float*)malloc(sizeof(float) * numCenters * numFeatures);
+    int* membership = (int*)malloc(sizeof(int) * numSamples);
+
+    kmeans(flatten(X).data(), flatten(initCenters).data(), numSamples, numFeatures, numCenters, maxNumIteration, tolerance, cudaEnabled, centers, membership, &numIterations);
+
+    std::vector<float> vecCenters(centers, centers + (numCenters * numFeatures));
+    std::vector<int> vecMembership(membership, membership + numSamples);
+
+    REQUIRE_THAT(vecCenters, Catch::Approx(flatten(expectedCenters)));
+    REQUIRE(vecMembership == expectedMemberships);
+    REQUIRE(numIterations == expectedNumIterations);
+
+    if (centers) {
+        free(centers);
+    }
+    if (membership) {
+        free(membership);
+    }
+}
+
+TEST_CASE ("Test GPU kmeans with empty cluster", "[kmeans-gpu-empty-cluster]") {
+    int numSamples = 4;
+    int numFeatures = 2;
+    int numCenters = 2;
+    int maxNumIteration = 10;
+    int numIterations = 0;
+    float tolerance = 1e-4;
+    bool cudaEnabled = true;
+    std::vector<std::vector<float>> X = {{0.0, 0.0}, {0.5, 0.0}, {0.5, 1.0}, {1.0, 1.0}};
+    std::vector<std::vector<float>> initCenters = {{0.0, 0.0}, {10.0, 10.0}};
+
+    std::vector<int> expectedMemberships = {0, 0, 0, 0};
+    std::vector<std::vector<float>> expectedCenters = {{0.5, 0.5}, {10.0, 10.0}};
+    int expectedNumIterations = 2;
+
+    float* centers = (float*)malloc(sizeof(float) * numCenters * numFeatures);
+    int* membership = (int*)malloc(sizeof(int) * numSamples);
+
+    kmeans(flatten(X).data(), flatten(initCenters).data(), numSamples, numFeatures, numCenters, maxNumIteration, tolerance, cudaEnabled, centers, membership, &numIterations);
+
+    std::vector<float> vecCenters(centers, centers + (numCenters * numFeatures));
+    std::vector<int> vecMembership(membership, membership + numSamples);
+
+    REQUIRE_THAT(vecCenters, Catch::Approx(flatten(expectedCenters)));
+    REQUIRE(vecMembership == expectedMemberships);
+    REQUIRE(numIterations == expectedNumIterations);
+
+    if (centers) {
+        free(centers);
+    }
+    if (membership) {
+        free(membership);
     }
 }

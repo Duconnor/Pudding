@@ -186,8 +186,13 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
             CUDA_CALL( cudaMemset(deviceSamplesCount, 0, sizeof(int)) );
             updateCentersKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceMembership, deviceCenters, deviceSamplesCount, idxCenter, numSamples, numFeatures, numCenters);
             CUDA_CALL( cudaMemcpy(samplesCount, deviceSamplesCount, sizeof(int), cudaMemcpyDeviceToHost) );
-            float scale = 1.0 / (*samplesCount);
-            CUBLAS_CALL( cublasSscal(cublasHandle, numFeatures, &scale, deviceCenters + idxCenter, numCenters) );
+            if (*samplesCount == 0) {
+                // Empty cluster, we keep it unchanged
+                CUBLAS_CALL( cublasScopy(cublasHandle, numFeatures, deviceOldCenters + idxCenter, numCenters, deviceCenters + idxCenter, numCenters) );
+            } else {
+                float scale = 1.0 / (*samplesCount);
+                CUBLAS_CALL( cublasSscal(cublasHandle, numFeatures, &scale, deviceCenters + idxCenter, numCenters) );
+            }
         }
 
         // Test for coverage
@@ -201,6 +206,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
             float diff = 0.0;
             // Compute the F-norm
             CUBLAS_CALL( cublasSdot(cublasHandle, numCenters * numFeatures, deviceOldCenters, 1, deviceOldCenters, 1, &diff) );
+            // FIXME: CHECK THIS CONDITION HERE WITH sklearn's IMPLEMENTATION
             endFlag = sqrt(diff) < tolerance;
         }
     }

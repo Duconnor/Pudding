@@ -66,7 +66,11 @@ void _kmeansCPU(const float* X, const float* initCenters, const int numSamples, 
             }
 
             for (int j = 0; j < numFeatures; j++) {
-                centers[twoDimIndexToOneDim(i, j, numCenters, numFeatures)] /= numSamplesCount;
+                if (numSamplesCount == 0) {
+                    centers[twoDimIndexToOneDim(i, j, numCenters, numFeatures)] = oldCenters[twoDimIndexToOneDim(i, j, numCenters, numFeatures)];
+                } else {
+                    centers[twoDimIndexToOneDim(i, j, numCenters, numFeatures)] /= numSamplesCount;
+                }
             }
         }
 

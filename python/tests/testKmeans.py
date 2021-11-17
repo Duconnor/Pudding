@@ -80,3 +80,28 @@ def testKmeansCPUGPULarge():
         assert our_cpu_center == pytest.approx(our_gpu_center, rel=1e-1)
 
     assert our_cpu_n_iter == our_gpu_n_iter
+
+def testKmeansEmptyCluster():
+    '''
+    Test KMeans when there is empty cluster
+    '''
+    X = [[0.0, 0.0], [0.5, 0.0], [0.5, 1.0], [1.0, 1.0]]
+    initial_centers = [[0.0, 0.0], [10.0, 10.0]]
+
+    expected_membership = [0, 0, 0, 0]
+    expected_centers = [[0.5, 0.5], [10.0, 10.0]]
+    expected_iterations = 2
+
+    centers, membership, n_iterations = pudding.clustering.kmeans(X, initial_centers, n_clusters=len(initial_centers), cuda_enabled=False)
+
+    assert membership == expected_membership
+    for center, expected_center in zip(centers, expected_centers):
+        assert center == pytest.approx(expected_center)
+    assert expected_iterations == n_iterations
+
+    centers, membership, n_iterations = pudding.clustering.kmeans(X, initial_centers, n_clusters=len(initial_centers), cuda_enabled=True)
+
+    assert membership == expected_membership
+    for center, expected_center in zip(centers, expected_centers):
+        assert center == pytest.approx(expected_center)
+    assert expected_iterations == n_iterations
