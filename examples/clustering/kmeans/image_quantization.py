@@ -6,9 +6,7 @@ https://scikit-learn.org/stable/auto_examples/cluster/plot_color_quantization.ht
 import numpy as np
 from PIL import Image
 from time import time
-from sklearn.utils import shuffle
-from sklearn.metrics import pairwise_distances_argmin
-from sklearn.datasets import load_sample_image
+from sklearn.cluster import KMeans
 
 from pudding.clustering import kmeans
 
@@ -25,11 +23,17 @@ w, h, d = original_shape = tuple(image.shape)
 assert d == 3
 image_array = np.reshape(image, (w * h, d))
 
-print("Perform the KMeans clustering...")
+print('Perform the KMeans clustering using scit-kit learn...')
 t0 = time()
+scikit_kmeans = KMeans(n_clusters=n_colors, n_init=1)
+scikit_kmeans.fit(image_array)
+print(f'Done in {time() - t0:0.3f}s.')
+
+print("Perform the KMeans clustering using Pudding on GPU...")
+t1 = time()
 centers, membership, _ = kmeans(image_array, n_clusters=n_colors, cuda_enabled=True)
 assert not np.isnan(centers).any()
-print(f"Done in {time() - t0:0.3f}s.")
+print(f"Done in {time() - t1:0.3f}s.")
 
 def recreate_image(codebook, labels, w, h):
     """Recreate the (compressed) image from the code book & labels"""
@@ -39,4 +43,9 @@ def recreate_image(codebook, labels, w, h):
 np_image = recreate_image(np.array(centers), np.array(membership), w, h)
 formatted_image = (np_image * 255).astype(np.uint8)
 quantized_image = Image.fromarray(formatted_image)
-quantized_image.save('quantized.jpg')
+quantized_image.save('quantized_pudding.jpg')
+
+np_image = recreate_image(scikit_kmeans.cluster_centers_, scikit_kmeans.labels_, w, h)
+formatted_image = (np_image * 255).astype(np.uint8)
+quantized_image = Image.fromarray(formatted_image)
+quantized_image.save('quantized_sklearn.jpg')

@@ -207,7 +207,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
             // Compute the F-norm
             CUBLAS_CALL( cublasSdot(cublasHandle, numCenters * numFeatures, deviceOldCenters, 1, deviceOldCenters, 1, &diff) );
             // FIXME: CHECK THIS CONDITION HERE WITH sklearn's IMPLEMENTATION
-            endFlag = sqrt(diff) < tolerance;
+            endFlag = diff < tolerance;
         }
     }
 

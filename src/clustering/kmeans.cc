@@ -84,7 +84,7 @@ void _kmeansCPU(const float* X, const float* initCenters, const int numSamples, 
             for (int i = 0; i < numCenters * numFeatures; i++) {
                 diff += pow((centers[i] - oldCenters[i]), 2);
             }
-            endFlag = sqrt(diff) < tolerance;
+            endFlag = diff < tolerance;
         }
         if (oldCenters) {
             free(oldCenters);
