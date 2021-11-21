@@ -6,7 +6,7 @@
 #include <cublas_v2.h>
 
 #include <helper/helper.cuh>
-#include <helper/helperCUDA.h>
+#include <helper/helper_CUDA.h>
 
 __global__
 void determineMembershipKernel(const float* X, const float* centers, int* membership, const int numSamples, const int numFeatures, const int numCenters) {
@@ -119,10 +119,9 @@ void updateCentersKernel(const float* X, const int* membership, float* centers, 
 void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, const int numFeatures, const int numCenters, const int maxNumIteration, const float tolerance, float* centers, int* membership, int* numIterations) {
     /*
      * Use GPU to accelerate the KMeans algorithm
-     * The whole process will be done using three separate kernels:
-     *  1. The first kernel compute the distance of points to clusters
-     *  2  The second kernel determine the membership of points to clusters
-     *  3. The third kernel update the center of each cluster
+     * The whole process will be done using two separate kernels:
+     *  1. The first kernel determine the membership of points to clusters
+     *  2. The second kernel update the center of each cluster
      */
 
     assert(maxNumIteration >= 0);

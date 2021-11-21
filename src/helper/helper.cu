@@ -1,4 +1,4 @@
-#include <helper/helperCUDA.h>
+#include <helper/helper_CUDA.h>
 
 #include <cuda_runtime.h>
 

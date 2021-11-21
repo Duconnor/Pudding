@@ -2,7 +2,7 @@
 #define PUDDING_CLUSTERING_H
 
 /**
- * Perform kmeans clustering on the given data
+ * Perform kmeans clustering on the given data.
  * 
  * @param X The input data, of shape (numSamples, numFeatures)
  * @param initCenters The initialized center

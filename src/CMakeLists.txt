@@ -2,16 +2,19 @@
 cmake_minimum_required(VERSION 3.18)
 
 # Set the head files
-set(HEADER_LIST "${PROJECT_SOURCE_DIR}/include/pudding/clustering.h")
+set(HEADER_LIST "${PROJECT_SOURCE_DIR}/include/pudding/clustering.h"
+                "${PROJECT_SOURCE_DIR}/include/pudding/dimension_reduction.h")
 
 # We also define some useful helper functions in the header file
 set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/include/helper/helper.h"
-                       "${PROJECT_SOURCE_DIR}/include/helper/helperCUDA.h"
+                       "${PROJECT_SOURCE_DIR}/include/helper/helper_CUDA.h"
                        "${PROJECT_SOURCE_DIR}/include/helper/helper.cuh")
 
 # Grap source files
 set(SOURCE_LIST "clustering/kmeans.cc"
                 "clustering/kmeans.cu"
+                "dimension_reduction/pca.cc"
+                "dimension_reduction/pca.cu"
                 "helper/helper.cu")
 
 # Build a shared library
