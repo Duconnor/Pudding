@@ -26,6 +26,11 @@ cmake --DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
+Or you can simply use the provided scripts:
+```shell
+sh scripts/release.sh
+```
+
 You can run tests if you want to check the build:
 ```shell
 cmake --build . -t test
@@ -34,7 +39,7 @@ cmake --build . -t test
 If you need the Python binding, go back to the root directory and run:
 ```shell
 cd python
-pip install setup.py install
+python setup.py install
 ```
 
 You can run tests if you want (again, assume you are in the root directory and be sure to install the pytest package in Python):

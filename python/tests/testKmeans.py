@@ -55,7 +55,6 @@ def testKmeansCPUGPU():
 
     assert our_cpu_n_iter == our_gpu_n_iter
 
-
 def testKmeansCPUGPULarge():
     '''
     Test our implementation with some randomly generated data between the CPU and GPU version using a larger number of data pooints
@@ -78,8 +77,6 @@ def testKmeansCPUGPULarge():
     # Assertions
     for our_cpu_center, our_gpu_center in zip(our_cpu_centers, our_gpu_centers):
         assert our_cpu_center == pytest.approx(our_gpu_center, rel=1e-1)
-
-    assert our_cpu_n_iter == our_gpu_n_iter
 
 def testKmeansEmptyCluster():
     '''

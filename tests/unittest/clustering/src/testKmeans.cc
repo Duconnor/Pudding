@@ -198,9 +198,8 @@ TEST_CASE ("Test GPU kmeans using the CPU version using a large number of exampl
 
     // Since in the CPU version, we use the naive way to perform summation. Error gets cumulated quickly as
     // the number of examples grows. Therefore, we need to use a large epsilon when comparing centers 
-    // and the comparision of membership is meaningless here.
+    // and the comparision of membership and number of iterations taken is meaningless here.
     REQUIRE_THAT(vecCentersCPU, Catch::Approx(vecCentersGPU).epsilon(1e-1));
-    REQUIRE(numIterationsCPU == numIterationsGPU);
 
     if (centersCPU) {
         free(centersCPU);
