@@ -13,8 +13,8 @@ set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/include/helper/helper.h"
 # Grap source files
 set(SOURCE_LIST "clustering/kmeans.cc"
                 "clustering/kmeans.cu"
-                "dimension_reduction/pca.cc"
-                "dimension_reduction/pca.cu"
+                #"dimension_reduction/pca.cc"
+                #"dimension_reduction/pca.cu"
                 "helper/helper.cu")
 
 # Build a shared library
@@ -24,18 +24,18 @@ add_library(pudding SHARED "${SOURCE_LIST}" "${HEADER_LIST}" "${HELPER_HEADER_LI
 target_include_directories(pudding PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 # Link necessary libraries
-target_link_libraries(pudding cublas)
+target_link_libraries(pudding PRIVATE cublas cusolver)
 
 # At least C++ 11 is needed
 target_compile_features(pudding PUBLIC cxx_std_11)
 
-# For debug
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # For debug
     target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-G>)
+else()
+    # For automatical optimization
+    target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas -O3>)
 endif()
-
-# For automatical optimization
-target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas -O3>)
 
 # Generate code for arch 60
 set_property(TARGET pudding PROPERTY CUDA_ARCHITECTURES 60)

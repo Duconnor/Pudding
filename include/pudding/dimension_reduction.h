@@ -9,9 +9,12 @@
  * @param X The input data, of shape (numSamples, numFeatures)
  * @param numSamples The first dimension of X, the number of samples
  * @param numFeatures The second dimension of X, the original dimension of X
- * @param targetDimension The target dimension we want to project our data into, must be smaller than numFeatures
- * @param projectedX The transformed result of X
+ * @param numComponents The number of components to keep, can be set to -1 if you want to choose the number of components based on the percentage of variance
+ * @param variancePercentage If the above parameter is -1, this parameter is used to select the number of components such that the amount of variance is greater than the percentage specified here. If valid (not -1), must be 0 < varaincePercentage < 1
+ * @param principalComponets The principal components, of shape (numSamples, numComponents)
+ * @param principalAxes The principal directions, of shape (numComponents, numFeatures)
+ * @param variances The variance of each principal directions
  */
-extern "C" void pca(const float* X, const int numSamples, const int numFeatures, const int targetDimension, float* projectedX);
+extern "C" void pca(const float* X, const int numSamples, const int numFeatures, const int numComponets, const float variancePercentage, float* principalComponets, float* principalAxes, float* variances);
 
 #endif

@@ -66,6 +66,14 @@
     }                                                                        \
 } while(0)
 
+#define CUSOLVER_CALL(status) do {                                            \
+    std::stringstream _error;                                                \
+    if((status) != CUSOLVER_STATUS_SUCCESS) {                                    \
+        _error << "cuSolver Failure: " << _cudaGetErrorEnum(status);            \
+        FatalError(_error.str());                                            \
+    }                                                                        \
+} while(0)
+
 #define CUDNN_CALL(status) do {                                                \
     std::stringstream _error;                                                \
     if ((status) != CUDNN_STATUS_SUCCESS) {                                    \
@@ -568,6 +576,41 @@ static const char *_cudaGetErrorEnum(cublasStatus_t error)
 
         case CUBLAS_STATUS_LICENSE_ERROR:
             return "CUBLAS_STATUS_LICENSE_ERROR";
+    }
+
+    return "<unknown>";
+}
+#endif
+
+#ifdef CUSOLVER_API_H_
+// cuSolver API errors
+static const char *_cudaGetErrorEnum(cusolverStatus_t error)
+{
+    switch (error)
+    {
+        case CUBLAS_STATUS_SUCCESS:
+            return "CUBLAS_STATUS_SUCCESS";
+
+        case CUBLAS_STATUS_NOT_INITIALIZED:
+            return "CUBLAS_STATUS_NOT_INITIALIZED";
+
+        case CUBLAS_STATUS_ALLOC_FAILED:
+            return "CUBLAS_STATUS_ALLOC_FAILED";
+
+        case CUBLAS_STATUS_INVALID_VALUE:
+            return "CUBLAS_STATUS_INVALID_VALUE";
+
+        case CUBLAS_STATUS_ARCH_MISMATCH:
+            return "CUBLAS_STATUS_ARCH_MISMATCH";
+
+        case CUBLAS_STATUS_EXECUTION_FAILED:
+            return "CUBLAS_STATUS_EXECUTION_FAILED";
+
+        case CUBLAS_STATUS_INTERNAL_ERROR:
+            return "CUBLAS_STATUS_INTERNAL_ERROR";
+
+        case CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED:
+            return "CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED";
     }
 
     return "<unknown>";

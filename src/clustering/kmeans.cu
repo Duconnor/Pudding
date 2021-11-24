@@ -26,6 +26,7 @@ void determineMembershipKernel(const float* X, const float* centers, int* member
     const int idxSampleSharedMem = threadIdx.x;
 
     // The first 'numCenters' threads in this block are responsible for loading the data of centers
+    // FIXME: What if numCenters > blockWidth??
     if (threadIdx.x < numCenters) {
         for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
             sharedCenters[idxFeature * numCenters + threadIdx.x] = centers[idxFeature * numCenters + threadIdx.x];
@@ -205,7 +206,6 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
             float diff = 0.0;
             // Compute the F-norm
             CUBLAS_CALL( cublasSdot(cublasHandle, numCenters * numFeatures, deviceOldCenters, 1, deviceOldCenters, 1, &diff) );
-            // FIXME: CHECK THIS CONDITION HERE WITH sklearn's IMPLEMENTATION
             endFlag = diff < tolerance;
         }
     }
