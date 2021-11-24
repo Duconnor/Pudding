@@ -13,8 +13,8 @@ set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/include/helper/helper.h"
 # Grap source files
 set(SOURCE_LIST "clustering/kmeans.cc"
                 "clustering/kmeans.cu"
-                #"dimension_reduction/pca.cc"
-                #"dimension_reduction/pca.cu"
+                "dimension_reduction/pca.cc"
+                "dimension_reduction/pca.cu"
                 "helper/helper.cu")
 
 # Build a shared library

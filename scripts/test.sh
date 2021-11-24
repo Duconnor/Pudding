@@ -1,1 +1,1 @@
-./build/tests/unittest/clustering/test_kmeans
+cd build ; ctest -R TestHelperTest

@@ -12,4 +12,15 @@ void copyToHostAndDisplayFloat(const float* devicePtr, int row, int col);
  */
 void wrapperMatrixVectorSubtraction(const float* matrix, const int numRow, const int numCol, const float* vector, float* res);
 
+/*
+ * This is a wrapper function for a kernel call that performs element-wise multiplication between two vectors, followed by a element-wise scale.
+ * In other words, this function performs (x1 .* x2) / scale.
+ */
+void wrapperVectorVectorElementWiseMultiplication(const float* vecOne, const float* vecTwo, const int numElements, const float scale, float* res);
+
+/*
+ * This function performs matrix transpose using cublas functions.
+ */
+void transposeMatrix(float* matrix, const int numRow, const int numCol);
+
 #endif

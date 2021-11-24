@@ -13,4 +13,4 @@ endif()
 set_property(TARGET test_helper PROPERTY CUDA_ARCHITECTURES 60)
 
 # Register the test
-add_test(NAME TestHelperTest COMMAND TestHelper)
+add_test(NAME TestHelperTest COMMAND test_helper)

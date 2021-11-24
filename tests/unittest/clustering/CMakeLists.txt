@@ -10,4 +10,4 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Register the test
-add_test(NAME TestKmeansTest COMMAND TestKmeans)
+add_test(NAME TestKmeansTest COMMAND test_kmeans)

@@ -125,6 +125,8 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
      *  2. The second kernel update the center of each cluster
      */
 
+    // TODO: Maybe switch to the transposeMatrix helper function for performing transpose.
+
     assert(maxNumIteration >= 0);
 
     memcpy(centers, initCenters, sizeof(float) * numCenters * numFeatures);
