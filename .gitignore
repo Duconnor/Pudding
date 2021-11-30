@@ -194,3 +194,7 @@ cython_debug/
 
 # VS-Code
 .vscode/
+
+# Things in the example folder
+examples/dimension_reduction/pca/olivetti_py3.pkz
+examples/dimension_reduction/pca/*.jpg
