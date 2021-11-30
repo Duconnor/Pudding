@@ -7,7 +7,7 @@
 #include <helper/helper_CUDA.h>
 #include <helper/helper.cuh>
 
-void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const int numComponents, const float variancePercentage, float* principalComponets, float* principalAxes, float* variances, int* numComponentsChosen) {
+void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const int numComponents, const float variancePercentage, float* principalComponets, float* principalAxes, float* variances, float* reconstructedX, int* numComponentsChosen) {
     /*
      * The GPU version of PCA
      * PCA can be implemented using the cuBLAS and cuSolver library.
@@ -16,7 +16,8 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
      * 1. Compute the mean of X.
      * 2. Perform SVD on the centered data X - mean.
      * 3. Select the number of components using either numComponents of variancePercentage.
-     * 4. Obtain the principal components, set the return results
+     * 4. Obtain the principal components, set the return results.
+     * 5. Reconstruct the original X (this is actually not part of PCA but it can be useful so I put it here).
      */
 
     // Perform simple pre-condition check
@@ -36,7 +37,9 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     float* deviceU; // The left singular matrix U.
     float* deviceV; // The right singular matrix V^T.
     float* deviceVariances; // The actual variances along principal directions.
-    float* devicePrincipalComponets; // The principal components (i.e. the lower dimensional representation of the original data)
+    float* devicePrincipalComponets; // The principal components (i.e. the lower dimensional representation of the original data).
+    float* deviceReconstructedX; // The reconstructed X.
+    float* devicePrincipalAxes; // The principal axes.
     int* deviceInfo; // This is used for solving SVD using cusolver.
     
     CUDA_CALL( cudaMalloc(&deviceX, sizeof(float) * numSamples * numFeatures) );
@@ -47,6 +50,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaMalloc(&deviceU, sizeof(float) * numSamples * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceV, sizeof(float) * numFeatures * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceVariances, sizeof(float) * min(numFeatures, numSamples)) );
+    CUDA_CALL( cudaMalloc(&deviceReconstructedX, sizeof(float) * numSamples * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceInfo, sizeof(int)) );
 
     wrapperInitializeAllElementsToXKernel(deviceAllOneVec, 1.0, numSamples);
@@ -57,7 +61,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUBLAS_CALL( cublasCreate(&cublasHandle) );
 
     // Prepare useful constant for cublas calls
-    const float one = 1.0, zero = 0.0;
+    const float one = 1.0, zero = 0.0, negOne = -1.0;
 
     // Transpose deviceX to enable coalesced memory access in the kernel
     transposeMatrix(deviceX, numSamples, numFeatures);
@@ -70,7 +74,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
 
     // 2. Perform SVD on the centered data.
     // 2.1. Center the data
-    wrapperMatrixVectorSubtraction(deviceX, numFeatures, numSamples, deviceMeanVec, deviceCenteredX);
+    wrapperMatrixVectorAddition(deviceX, numFeatures, numSamples, deviceMeanVec, negOne, deviceCenteredX);
     // 2.2. Perform SVD on deviceCenteredX
     // Configuration of gesvdj
     const cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
@@ -133,9 +137,17 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaMemcpy(principalAxes, deviceV, sizeof(float) * (*numComponentsChosen) * numFeatures, cudaMemcpyDeviceToHost) );
     // 4.2. Obtain the principal components by performing U * S
     CUDA_CALL( cudaMalloc(&devicePrincipalComponets, sizeof(float) * numSamples * (*numComponentsChosen)) );
-    CUDA_CALL( cublasSdgmm(cublasHandle, CUBLAS_SIDE_RIGHT, numSamples, *numComponentsChosen, deviceU, numSamples, deviceS, one, devicePrincipalComponets, numSamples) );
+    CUBLAS_CALL( cublasSdgmm(cublasHandle, CUBLAS_SIDE_RIGHT, numSamples, *numComponentsChosen, deviceU, numSamples, deviceS, one, devicePrincipalComponets, numSamples) );
     transposeMatrix(devicePrincipalComponets, *numComponentsChosen, numSamples);
     CUDA_CALL( cudaMemcpy(principalComponets, devicePrincipalComponets, sizeof(float) * numSamples * *numComponentsChosen, cudaMemcpyDeviceToHost) );
+
+    // 5. Reconstruct the original data X
+    CUDA_CALL( cudaMalloc(&devicePrincipalAxes, sizeof(float) * (*numComponentsChosen) * numFeatures) );
+    CUDA_CALL( cudaMemcpy(devicePrincipalAxes, deviceV, sizeof(float) * (*numComponentsChosen) * numFeatures, cudaMemcpyDeviceToDevice) );
+    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_T, numSamples, numFeatures, *numComponentsChosen, &one, devicePrincipalComponets, *numComponentsChosen, devicePrincipalAxes, numFeatures, &zero, deviceReconstructedX, numSamples) );
+    wrapperMatrixVectorAddition(deviceReconstructedX, numFeatures, numSamples, deviceMeanVec, one, deviceReconstructedX);
+    transposeMatrix(deviceReconstructedX, numFeatures, numSamples);
+    CUDA_CALL( cudaMemcpy(reconstructedX, deviceReconstructedX, sizeof(float) * numSamples * numFeatures, cudaMemcpyDeviceToHost) );
 
     // Free GPU spaces
     CUDA_CALL( cudaFree(deviceX) );
@@ -148,6 +160,8 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaFree(deviceV) );
     CUDA_CALL( cudaFree(deviceVariances) );
     CUDA_CALL( cudaFree(devicePrincipalComponets) );
+    CUDA_CALL( cudaFree(deviceReconstructedX) );
+    CUDA_CALL( cudaFree(devicePrincipalAxes) );
     CUDA_CALL( cudaFree(deviceInfo) );
 
     CUBLAS_CALL( cublasDestroy(cublasHandle) );

@@ -8,12 +8,13 @@
 #include <helper/helper.cuh>
 #include <helper/helper_CUDA.h>
 
-TEST_CASE ("Test matrix vector subtraction kernel", "[matrix-vector-subtraction]") {
+TEST_CASE ("Test matrix vector addition kernel", "[matrix-vector-addition]") {
     // Prepare the test data
     const int numRow = 3;
     const int numCol = 4;
     std::vector<float> matrix = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
     std::vector<float> vector = {5.0, 5.0, 5.0};
+    float scale = -1.0;
 
     std::vector<float> expectedRes = {-4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
 
@@ -30,7 +31,7 @@ TEST_CASE ("Test matrix vector subtraction kernel", "[matrix-vector-subtraction]
     CUDA_CALL( cudaMemcpy(deviceVector, vector.data(), sizeof(float) * numRow, cudaMemcpyHostToDevice) );
 
     // Launche the kernel
-    wrapperMatrixVectorSubtraction(deviceMatrix, numRow, numCol, deviceVector, deviceRes);
+    wrapperMatrixVectorAddition(deviceMatrix, numRow, numCol, deviceVector, scale, deviceRes);
 
     // Copy data back to host
     float* res = (float*)malloc(sizeof(float) * numRow * numCol);

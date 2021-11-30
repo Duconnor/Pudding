@@ -2,4 +2,4 @@
 Demension reduction algorithms
 '''
 
-from .pca import pca_reduction
+from .pca import pca

@@ -4,13 +4,14 @@
 void copyToHostAndDisplayFloat(const float* devicePtr, int row, int col);
 
 /*
- * This is a wrapper function for a kernel call that performs matrix vector subtraction (i.e. broadcasting).
+ * This is a wrapper function for a kernel call that performs matrix vector addition (i.e. broadcasting).
+ * Specifically, this function perfroms X + scale * a
  * Pre-condition
  *  1. The vector must be in the shape of (numRow,).
  *  2. Need to specify the size of the shared memory, which is sizeof(float) * numRow.
  *  3. All pointers must be pointers on the device side.
  */
-void wrapperMatrixVectorSubtraction(const float* matrix, const int numRow, const int numCol, const float* vector, float* res);
+void wrapperMatrixVectorAddition(const float* matrix, const int numRow, const int numCol, const float* vector, float scale, float* res);
 
 /*
  * This is a wrapper function for a kernel call that performs element-wise multiplication between two vectors, followed by a element-wise scale.

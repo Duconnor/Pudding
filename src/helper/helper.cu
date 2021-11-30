@@ -21,7 +21,7 @@ void copyToHostAndDisplayFloat(const float* devicePtr, int row, int col) {
 }
 
 __global__
-void matrixVectorSubtractionKernel(const float* matrix, const int numRow, const int numCol, const float* vector, float* res) {
+void matrixVectorAdditionKernel(const float* matrix, const int numRow, const int numCol, const float* vector, float scale, float* res) {
     // Each thread is responsible for each column
     int colIdx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -39,7 +39,7 @@ void matrixVectorSubtractionKernel(const float* matrix, const int numRow, const 
     // Perform the subtraction
     while (colIdx < numCol) {
         for (int i = 0; i < numRow; i++) {
-            res[i * numCol + colIdx] = matrix[i * numCol + colIdx] - sharedMem[i];
+            res[i * numCol + colIdx] = matrix[i * numCol + colIdx] + scale * sharedMem[i];
         }
 
         colIdx += blockDim.x * gridDim.x;
@@ -71,13 +71,13 @@ void initializeAllElementsToXKernel(float* vec, const float X, const int numElem
     
 }
 
-void wrapperMatrixVectorSubtraction(const float* matrix, const int numRow, const int numCol, const float* vector, float* res) {
+void wrapperMatrixVectorAddition(const float* matrix, const int numRow, const int numCol, const float* vector, float scale, float* res) {
     // Kernel configuration
     const int BLOCKWIDTH = 1024;
     const int BLOCKSIZE = min(65535, ((numCol) + BLOCKWIDTH - 1) / BLOCKWIDTH);
     const int SHAREDMEMSIZE = sizeof(float) * numRow;
     // Launch the kernel
-    matrixVectorSubtractionKernel<<<BLOCKSIZE, BLOCKWIDTH, SHAREDMEMSIZE>>>(matrix, numRow, numCol, vector, res);
+    matrixVectorAdditionKernel<<<BLOCKSIZE, BLOCKWIDTH, SHAREDMEMSIZE>>>(matrix, numRow, numCol, vector, scale, res);
 }
 
 void wrapperVectorVectorElementWiseMultiplication(const float* vecOne, const float* vecTwo, const int numElements, const float scale, float* res) {

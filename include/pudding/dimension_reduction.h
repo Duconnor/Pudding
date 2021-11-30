@@ -14,8 +14,9 @@
  * @param principalComponets The principal components, of shape (numSamples, numComponents)
  * @param principalAxes The principal directions, of shape (numComponents, numFeatures)
  * @param variances The variance of each principal directions
+ * @param reconstructedX The reconstruction of the original data X which has the lowest possible reconstruction error, of shape (numSample, numFeatures)
  * @param numComponentsChosen The actual number of components chosen, if numComponents is not -1, this equals to numComponents, otherwise, it is the number of components chosen to meet the variancePercentage
  */
-extern "C" void pca(const float* X, const int numSamples, const int numFeatures, const int numComponents, const float variancePercentage, float* principalComponets, float* principalAxes, float* variances, int* numComponentsChosen);
+extern "C" void pca(const float* X, const int numSamples, const int numFeatures, const int numComponents, const float variancePercentage, float* principalComponets, float* principalAxes, float* variances, float* reconstructedX, int* numComponentsChosen);
 
 #endif

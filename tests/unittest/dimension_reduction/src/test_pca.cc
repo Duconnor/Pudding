@@ -60,15 +60,17 @@ TEST_CASE ("Test PCA on toy data one", "[pca-toy-one]") {
     std::vector<float> expectedPrincipalAxes = {-0.83849224, -0.54491354, 0.54491354, -0.83849224};
     std::vector<float> expectedPrincipalAxesNeg = neg(expectedPrincipalAxes);
     std::vector<float> expectedVariances = {7.93954312, 0.06045688};
+    std::vector<float> expectedReconstructedX = {-1, -1, -2, -1, -3, -2, 1, 1, 2, 1, 3, 2};
     int expectedNumComponentsChosen = 2;
 
     // The problem here is that we may not know in advance how many components will be chosen. Therefore, here we allocate space for the largest possible case.
     float* principalComponents = (float*)malloc(sizeof(float) * numSamples * numFeatures);
     float* principalAxes = (float*)malloc(sizeof(float) * min(numFeatures, numSamples) * numFeatures);
     float* variances = (float*)malloc(sizeof(float) * min(numFeatures, numSamples));
+    float* reconstructedX = (float*)malloc(sizeof(float) * numSamples * numFeatures);
     int numComponentsChosen = 0;
 
-    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, &numComponentsChosen);
+    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, reconstructedX, &numComponentsChosen);
 
     // This must be correct cause we will be recovering the actual principal components, principal axes and variances based on this value
     REQUIRE(numComponentsChosen == expectedNumComponentsChosen);
@@ -76,8 +78,10 @@ TEST_CASE ("Test PCA on toy data one", "[pca-toy-one]") {
     std::vector<float> vecPrincipalComponents(principalComponents, principalComponents + (numSamples * numComponentsChosen));
     std::vector<float> vecPrincipalAxes(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     std::vector<float> vecVariances(variances, variances + numComponentsChosen);
+    std::vector<float> vecReconstructedX(reconstructedX, reconstructedX + (numSamples * numFeatures));
 
     checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
+    REQUIRE_THAT(vecReconstructedX, Catch::Approx(expectedReconstructedX));
 }
 
 /*
@@ -97,15 +101,17 @@ TEST_CASE ("Test PCA on toy data two", "[pca-toy-two]") {
     std::vector<float> expectedPrincipalAxes = {-0.83849224, -0.54491354};
     std::vector<float> expectedPrincipalAxesNeg = neg(expectedPrincipalAxes);
     std::vector<float> expectedVariances = {7.93954312};
+    std::vector<float> expectedReconstructedX = {-1.15997501, -0.75383654, -1.86304424, -1.21074232, -3.02301925, -1.96457886, 1.15997501, 0.75383654, 1.86304424, 1.21074232, 3.02301925, 1.96457886};
     int expectedNumComponentsChosen = 1;
 
     // The problem here is that we may not know in advance how many components will be chosen. Therefore, here we allocate space for the largest possible case.
     float* principalComponents = (float*)malloc(sizeof(float) * numSamples * numFeatures);
     float* principalAxes = (float*)malloc(sizeof(float) * min(numFeatures, numSamples) * numFeatures);
     float* variances = (float*)malloc(sizeof(float) * min(numFeatures, numSamples));
+    float* reconstructedX = (float*)malloc(sizeof(float) * numSamples * numFeatures);
     int numComponentsChosen = 0;
 
-    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, &numComponentsChosen);
+    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, reconstructedX, &numComponentsChosen);
 
     // This must be correct cause we will be recovering the actual principal components, principal axes and variances based on this value
     REQUIRE(numComponentsChosen == expectedNumComponentsChosen);
@@ -113,8 +119,10 @@ TEST_CASE ("Test PCA on toy data two", "[pca-toy-two]") {
     std::vector<float> vecPrincipalComponents(principalComponents, principalComponents + (numSamples * numComponentsChosen));
     std::vector<float> vecPrincipalAxes(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     std::vector<float> vecVariances(variances, variances + numComponentsChosen);
+    std::vector<float> vecReconstructedX(reconstructedX, reconstructedX + (numSamples * numFeatures));
 
     checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
+    REQUIRE_THAT(vecReconstructedX, Catch::Approx(expectedReconstructedX));
 }
 
 /*
@@ -132,6 +140,7 @@ TEST_CASE ("Test PCA on toy data auto selection of components", "[pca-toy-auto-s
     float* principalComponents = (float*)malloc(sizeof(float) * numSamples * numFeatures);
     float* principalAxes = (float*)malloc(sizeof(float) * min(numFeatures, numSamples) * numFeatures);
     float* variances = (float*)malloc(sizeof(float) * min(numFeatures, numSamples));
+    float* reconstructedX = (float*)malloc(sizeof(float) * numSamples * numFeatures);
     int numComponentsChosen = 0;
 
     // First case, only one principal component (scores) is enough
@@ -142,9 +151,10 @@ TEST_CASE ("Test PCA on toy data auto selection of components", "[pca-toy-auto-s
     std::vector<float> expectedPrincipalAxes = {-0.83849224, -0.54491354};
     std::vector<float> expectedPrincipalAxesNeg = neg(expectedPrincipalAxes);
     std::vector<float> expectedVariances = {7.93954312};
+    std::vector<float> expectedReconstructedX = {-1.15997501, -0.75383654, -1.86304424, -1.21074232, -3.02301925, -1.96457886, 1.15997501, 0.75383654, 1.86304424, 1.21074232, 3.02301925, 1.96457886};
     int expectedNumComponentsChosen = 1;
 
-    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, &numComponentsChosen);
+    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, reconstructedX, &numComponentsChosen);
 
     // This must be correct cause we will be recovering the actual principal components, principal axes and variances based on this value
     REQUIRE(numComponentsChosen == expectedNumComponentsChosen);
@@ -152,14 +162,10 @@ TEST_CASE ("Test PCA on toy data auto selection of components", "[pca-toy-auto-s
     std::vector<float> vecPrincipalComponents(principalComponents, principalComponents + (numSamples * numComponentsChosen));
     std::vector<float> vecPrincipalAxes(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     std::vector<float> vecVariances(variances, variances + numComponentsChosen);
+    std::vector<float> vecReconstructedX(reconstructedX, reconstructedX + (numSamples * numFeatures));
 
-    REQUIRE_THAT(vecPrincipalComponents, Catch::Approx(expectedPrincipalComponents) || Catch::Approx(expectedPrincipalComponentsNeg));
-    if (vecPrincipalComponents[0] == expectedPrincipalComponents[0]) {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxes));
-    } else {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxesNeg));
-    }
-    REQUIRE_THAT(vecVariances, Catch::Approx(expectedVariances));
+    checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
+    REQUIRE_THAT(vecReconstructedX, Catch::Approx(expectedReconstructedX));
 
     // Second case, two principal components are all needed
     variancePercentage = 0.999;
@@ -169,9 +175,10 @@ TEST_CASE ("Test PCA on toy data auto selection of components", "[pca-toy-auto-s
     expectedPrincipalAxes = {-0.83849224, -0.54491354, 0.54491354, -0.83849224};
     expectedPrincipalAxesNeg = neg(expectedPrincipalAxes);
     expectedVariances = {7.93954312, 0.06045688};
+    expectedReconstructedX = {-1, -1, -2, -1, -3, -2, 1, 1, 2, 1, 3, 2};
     expectedNumComponentsChosen = 2;
 
-    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, &numComponentsChosen);
+    pca(X.data(), numSamples, numFeatures, numComponents, variancePercentage, principalComponents, principalAxes, variances, reconstructedX, &numComponentsChosen);
 
     // This must be correct cause we will be recovering the actual principal components, principal axes and variances based on this value
     REQUIRE(numComponentsChosen == expectedNumComponentsChosen);
@@ -179,6 +186,8 @@ TEST_CASE ("Test PCA on toy data auto selection of components", "[pca-toy-auto-s
     vecPrincipalComponents = std::vector<float>(principalComponents, principalComponents + (numSamples * numComponentsChosen));
     vecPrincipalAxes = std::vector<float>(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     vecVariances = std::vector<float>(variances, variances + numComponentsChosen);
+    vecReconstructedX = std::vector<float>(reconstructedX, reconstructedX + (numSamples * numFeatures));
 
     checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
+    REQUIRE_THAT(vecReconstructedX, Catch::Approx(expectedReconstructedX));
 }
