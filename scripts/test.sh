@@ -1,1 +1,1 @@
-cd build ; ctest -R TestHelperTest
+./build/tests/unittest/dimension_reduction/test_pca

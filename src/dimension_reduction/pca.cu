@@ -23,7 +23,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     if (numComponents == -1) {
         assert (variancePercentage > 0 && variancePercentage < 1);
     } else {
-        assert (numComponents < min(numSamples, numFeatures));
+        assert (numComponents <= min(numSamples, numFeatures));
     }
 
     // Malloc space on GPU
@@ -37,6 +37,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     float* deviceV; // The right singular matrix V^T.
     float* deviceVariances; // The actual variances along principal directions.
     float* devicePrincipalComponets; // The principal components (i.e. the lower dimensional representation of the original data)
+    int* deviceInfo; // This is used for solving SVD using cusolver.
     
     CUDA_CALL( cudaMalloc(&deviceX, sizeof(float) * numSamples * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceAllOneVec, sizeof(float) * numSamples) );
@@ -46,8 +47,10 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaMalloc(&deviceU, sizeof(float) * numSamples * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceV, sizeof(float) * numFeatures * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceVariances, sizeof(float) * min(numFeatures, numSamples)) );
+    CUDA_CALL( cudaMalloc(&deviceInfo, sizeof(int)) );
 
     CUDA_CALL( cudaMemset(deviceAllOneVec, 1, sizeof(float) * numSamples) );
+    CUDA_CALL( cudaMemcpy(deviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
 
     // Prepare the handle for cublas
     cublasHandle_t cublasHandle = NULL;
@@ -69,10 +72,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     // 2.1. Center the data
     wrapperMatrixVectorSubtraction(deviceX, numFeatures, numSamples, deviceMeanVec, deviceCenteredX);
     // 2.2. Perform SVD on deviceCenteredX
-    // TODO: Maybe the default configuration is better?
     // Configuration of gesvdj
-    const float tol = 1e-7;
-    const int maxSweeps = 15;
     const cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_VECTOR;
     const int econ = 0;
 
@@ -86,8 +86,6 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     // Set the configuration of gesvdj
     gesvdjInfo_t gesvdParams = NULL;
     CUSOLVER_CALL( cusolverDnCreateGesvdjInfo(&gesvdParams) );
-    CUSOLVER_CALL( cusolverDnXgesvdjSetTolerance(gesvdParams, tol) );
-    CUSOLVER_CALL( cusolverDnXgesvdjSetMaxSweeps(gesvdParams, maxSweeps) );
 
     // Prepare the work buffer
     int workBufferSize = 0;
@@ -95,29 +93,45 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaMalloc(&deviceWorkBuffer, sizeof(float) * workBufferSize) );
 
     // Perform the actual SVD computation
-    int info = 0;
-    CUSOLVER_CALL( cusolverDnSgesvdj(cusolverHandle, jobz, econ, numSamples, numFeatures, deviceCenteredX, numSamples, deviceS, deviceU, numSamples, deviceV, numFeatures, deviceWorkBuffer, workBufferSize, &info, gesvdParams) );
+    CUSOLVER_CALL( cusolverDnSgesvdj(cusolverHandle, jobz, econ, numSamples, numFeatures, deviceCenteredX, numSamples, deviceS, deviceU, numSamples, deviceV, numFeatures, deviceWorkBuffer, workBufferSize, deviceInfo, gesvdParams) );
 
-    // TODO: Do we need to synchronize device here?
+    // We need to synchronize device here cause we use stream before
+    CUDA_CALL( cudaDeviceSynchronize() );
 
     // 3. Select the number of components
+    // The selection is based on the varince. So we first need to compute the variances using the singular values
+    wrapperVectorVectorElementWiseMultiplication(deviceS, deviceS, min(numFeatures, numSamples), 1.0 / (numSamples - 1), deviceVariances);
+    // Then we copy the variances from device to host
+    CUDA_CALL( cudaMemcpy(variances, deviceVariances, sizeof(float) * min(numFeatures, numSamples), cudaMemcpyDeviceToHost) );
     if (numComponents == -1) {
-        // 3.1. In this case, we need to select the number of components such that the ratio of the accumulated variance goes above the required variancePercentage
-        assert (false); // TODO: For simplicity, add this later.
+        // In this case, we need to select the number of components such that the ratio of the accumulated variance goes above the required variancePercentage
+        // In order to select, we need the summation of all variances
+        float* variancesSum = (float*)malloc(sizeof(float));
+        // Actually, cublasSasum compute the sum of the **absolute value** of elements in a vector. However, variance is guaranteed to be positive here, so we can just use this function to compute the summation.
+        CUBLAS_CALL( cublasSasum(cublasHandle, min(numFeatures, numSamples), deviceVariances, 1, variancesSum) );
+        // Based on the sum, we select the number of components needed
+        *numComponentsChosen = 0;
+        float currentSum = 0.0;
+        while (*numComponentsChosen < min(numFeatures, numSamples)) {
+            currentSum += variances[*numComponentsChosen];
+            *numComponentsChosen = *numComponentsChosen + 1;
+            if (currentSum > variancePercentage * (*variancesSum)) {
+                break;
+            }
+        }
+        if (variancesSum) {
+            free(variancesSum);
+        }
     } else {
         *numComponentsChosen = numComponents;
     }
 
     // 4. Obtain the principal components and set the result
-    // 4.1. Compute the variances using the singular values
-    wrapperVectorVectorElementWiseMultiplication(deviceS, deviceS, min(numFeatures, numSamples), 1.0 / (numSamples - 1), deviceVariances);
-    // 4.2. Copy the first numComponents elements from deviceVariances to variances
-    CUDA_CALL( cudaMemcpy(variances, deviceVariances, sizeof(float) * (*numComponentsChosen), cudaMemcpyDeviceToHost) );
-    // 4.3. Copy the first numComponents columns from V to principalAxes
+    // 4.1. Copy the first numComponents columns from V to principalAxes
     // Since cublas uses column-major storage, the column of V is stored continuously
     // Therefore, we can simply copy the first numComponents * numFeatures * sizeof(float) here :)
     CUDA_CALL( cudaMemcpy(principalAxes, deviceV, sizeof(float) * (*numComponentsChosen) * numFeatures, cudaMemcpyDeviceToHost) );
-    // 4.4. Obtain the principal components by performing U * S
+    // 4.2. Obtain the principal components by performing U * S
     CUDA_CALL( cudaMalloc(&devicePrincipalComponets, sizeof(float) * numSamples * (*numComponentsChosen)) );
     CUDA_CALL( cublasSdgmm(cublasHandle, CUBLAS_SIDE_RIGHT, numSamples, *numComponentsChosen, deviceU, numSamples, deviceS, one, devicePrincipalComponets, numSamples) );
     transposeMatrix(devicePrincipalComponets, *numComponentsChosen, numSamples);
@@ -134,6 +148,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaFree(deviceV) );
     CUDA_CALL( cudaFree(deviceVariances) );
     CUDA_CALL( cudaFree(devicePrincipalComponets) );
+    CUDA_CALL( cudaFree(deviceInfo) );
 
     CUBLAS_CALL( cublasDestroy(cublasHandle) );
     CUDA_CALL( cudaStreamDestroy(stream) );

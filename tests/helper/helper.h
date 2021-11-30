@@ -17,4 +17,17 @@ std::vector<T> flatten(const std::vector<std::vector<T>> & vec) {
     return result;
 }
 
+/*
+ * This is a generic function for performing element-wise negation
+ * of a given vector
+ */
+template <typename T>
+std::vector<T> neg(const std::vector<T> & vec) {   
+    std::vector<T> result(vec.size());
+    for (int i = 0; i < vec.size(); i++) {
+        result[i] = -vec[i];
+    }
+    return result;
+}
+
 #endif
