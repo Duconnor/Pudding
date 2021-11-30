@@ -58,6 +58,19 @@ void vectorVectorElementWiseMultiplicationKernel(const float* vecOne, const floa
     }
 }
 
+__global__
+void initializeAllElementsToXKernel(float* vec, const float X, const int numElements) {
+    // Each thread is responsible for each element
+    int eleIdx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    while (eleIdx < numElements) {
+        vec[eleIdx] = X;
+
+        eleIdx += blockDim.x * gridDim.x;
+    }
+    
+}
+
 void wrapperMatrixVectorSubtraction(const float* matrix, const int numRow, const int numCol, const float* vector, float* res) {
     // Kernel configuration
     const int BLOCKWIDTH = 1024;
@@ -91,4 +104,12 @@ void transposeMatrix(float* matrix, const int numRow, const int numCol) {
     // Free resources
     CUDA_CALL( cudaFree(tempMatrix) );
     CUBLAS_CALL( cublasDestroy(cublasHandle) );
+}
+
+void wrapperInitializeAllElementsToXKernel(float* vec, const float X, const int numElements) {
+    // Kernel configuration
+    const int BLOCKWIDTH = 1024;
+    const int BLOCKSIZE = min(65535, ((numElements) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+    // Launch the kernel
+    initializeAllElementsToXKernel<<<BLOCKSIZE, BLOCKWIDTH>>>(vec, X, numElements); 
 }

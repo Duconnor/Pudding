@@ -121,3 +121,36 @@ TEST_CASE ("Test matrix transpose", "[matrix-transpose]") {
     // Free all resources
     CUDA_CALL( cudaFree(deviceMatrix) );
 }
+
+TEST_CASE ("Test array initialization", "[array-initialization]") {
+    // Prepare the test data
+    const int numElements = 12;
+    const float targetValue = 233;
+    std::vector<float> vec(numElements, 0);
+
+    std::vector<float> expectedRes(numElements, targetValue);
+
+    // Copy data to device
+    float* deviceVec = NULL;
+
+    CUDA_CALL( cudaMalloc(&deviceVec, sizeof(float) * numElements) );
+
+    CUDA_CALL( cudaMemcpy(deviceVec, vec.data(), sizeof(float) * numElements, cudaMemcpyHostToDevice) );
+
+    // Launche the kernel
+    wrapperInitializeAllElementsToXKernel(deviceVec, targetValue, numElements);
+
+    // Copy data back to host
+    float* res = (float*)malloc(sizeof(float) * numElements);
+    CUDA_CALL( cudaMemcpy(res, deviceVec, sizeof(float) * numElements, cudaMemcpyDeviceToHost) );
+
+    // Assertions
+    std::vector<float> vecRes(res, res + numElements);
+    REQUIRE_THAT(vecRes, Catch::Approx(expectedRes));
+
+    if (res) {
+        free(res);
+    }
+    // Free all resources
+    CUDA_CALL( cudaFree(deviceVec) );
+}

@@ -49,7 +49,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
     CUDA_CALL( cudaMalloc(&deviceVariances, sizeof(float) * min(numFeatures, numSamples)) );
     CUDA_CALL( cudaMalloc(&deviceInfo, sizeof(int)) );
 
-    CUDA_CALL( cudaMemset(deviceAllOneVec, 1, sizeof(float) * numSamples) );
+    wrapperInitializeAllElementsToXKernel(deviceAllOneVec, 1.0, numSamples);
     CUDA_CALL( cudaMemcpy(deviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
 
     // Prepare the handle for cublas
@@ -108,7 +108,7 @@ void _pcaGPU(const float* X, const int numSamples, const int numFeatures, const 
         // In order to select, we need the summation of all variances
         float* variancesSum = (float*)malloc(sizeof(float));
         // Actually, cublasSasum compute the sum of the **absolute value** of elements in a vector. However, variance is guaranteed to be positive here, so we can just use this function to compute the summation.
-        CUBLAS_CALL( cublasSasum(cublasHandle, min(numFeatures, numSamples), deviceVariances, 1, variancesSum) );
+        CUBLAS_CALL( cublasSasum(cublasHandle, min(numFeatures, numSamples), deviceVariances, one, variancesSum) );
         // Based on the sum, we select the number of components needed
         *numComponentsChosen = 0;
         float currentSum = 0.0;

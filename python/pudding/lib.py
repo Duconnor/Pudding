@@ -24,3 +24,4 @@ def _load_lib() -> ctypes.CDLL:
     return lib
 
 _LIB = _load_lib()
+CONTIGUOUS_FLAG = 'C_CONTIGUOUS'

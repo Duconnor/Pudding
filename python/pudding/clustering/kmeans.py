@@ -2,12 +2,9 @@
 KMeans clustering related functions
 '''
 
-from scipy.sparse.construct import rand
-from ..lib import _LIB
+from ..lib import _LIB, CONTIGUOUS_FLAG
 import ctypes
 import numpy as np
-
-CONTIGUOUS_FLAG = 'C_CONTIGUOUS'
 
 def kmeans(X, initial_centers=None, n_clusters=8, max_iter=300, tol=1e-4, cuda_enabled=False, rand_seed=None) -> tuple:
     '''

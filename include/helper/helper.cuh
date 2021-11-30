@@ -23,4 +23,10 @@ void wrapperVectorVectorElementWiseMultiplication(const float* vecOne, const flo
  */
 void transposeMatrix(float* matrix, const int numRow, const int numCol);
 
+/*
+ * This function set all elements in an array to a specific value
+ * Note: cudaMemset cannot be used to set value other than 0 because it actually sets for byte value
+ */
+void wrapperInitializeAllElementsToXKernel(float* vec, const float X, const int numElements);
+
 #endif

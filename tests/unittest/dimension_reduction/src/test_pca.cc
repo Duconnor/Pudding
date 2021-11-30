@@ -10,6 +10,38 @@
 
 #define min(a, b) a > b ? b : a
 
+void checkPCAResult(std::vector<float>& variances, std::vector<float>& principalComponents, std::vector<float>& principalAxes, std::vector<float>& expectedVariances, std::vector<float>& expectedPrincipalComponents, std::vector<float>& expectedPrincipalAxes) {
+    
+    const int numComponents = variances.size();
+    const int numFeatures = principalAxes.size() / numComponents;
+    const int numSamples = principalComponents.size() / numComponents;
+
+    for (int componentIdx = 0; componentIdx < numComponents; componentIdx++) {
+        // We need to perform check for individual axis
+        // First, we extract the corresponding data out
+        std::vector<float> axisThisComponent = std::vector<float>(principalAxes.begin() + (componentIdx * numFeatures), principalAxes.begin() + (componentIdx * numFeatures + numFeatures));
+        std::vector<float> expectedAxisThisComponent = std::vector<float>(expectedPrincipalAxes.begin() + (componentIdx * numFeatures), expectedPrincipalAxes.begin() + (componentIdx * numFeatures + numFeatures));
+        std::vector<float> expectedAxisThisComponentNeg = neg(expectedAxisThisComponent);
+        std::vector<float> valThisComponent(numSamples, 0);
+        std::vector<float> expectedValThisComponent(numSamples, 0);
+        for (int i = 0; i < numSamples; i++) {
+            valThisComponent[i] = principalComponents[i * numComponents + componentIdx];
+            expectedValThisComponent[i] = expectedPrincipalComponents[i * numComponents + componentIdx];
+        }
+        std::vector<float> expectedValThisComponentNeg = neg(expectedValThisComponent);
+
+        // Perform check
+        REQUIRE_THAT(axisThisComponent, Catch::Approx(expectedAxisThisComponent) || Catch::Approx(expectedAxisThisComponentNeg));
+        if (abs(axisThisComponent[0] - expectedAxisThisComponent[0]) < 1e-4) {
+            REQUIRE_THAT(valThisComponent, Catch::Approx(expectedValThisComponent));
+        } else {
+            REQUIRE_THAT(valThisComponent, Catch::Approx(expectedValThisComponentNeg));
+        }
+    }
+    
+    REQUIRE_THAT(variances, Catch::Approx(expectedVariances));
+}
+
 
 /*
  * This test case test PCA using a simple toy data
@@ -45,14 +77,7 @@ TEST_CASE ("Test PCA on toy data one", "[pca-toy-one]") {
     std::vector<float> vecPrincipalAxes(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     std::vector<float> vecVariances(variances, variances + numComponentsChosen);
 
-    REQUIRE_THAT(vecPrincipalComponents, Catch::Approx(expectedPrincipalComponents) || Catch::Approx(expectedPrincipalComponentsNeg));
-    if (vecPrincipalComponents[0] == expectedPrincipalComponents[0]) {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxes));
-    } else {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxesNeg));
-    }
-    
-    REQUIRE_THAT(vecVariances, Catch::Approx(expectedVariances));
+    checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
 }
 
 /*
@@ -89,13 +114,7 @@ TEST_CASE ("Test PCA on toy data two", "[pca-toy-two]") {
     std::vector<float> vecPrincipalAxes(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     std::vector<float> vecVariances(variances, variances + numComponentsChosen);
 
-    REQUIRE_THAT(vecPrincipalComponents, Catch::Approx(expectedPrincipalComponents) || Catch::Approx(expectedPrincipalComponentsNeg));
-    if (vecPrincipalComponents[0] == expectedPrincipalComponents[0]) {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxes));
-    } else {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxesNeg));
-    }
-    REQUIRE_THAT(vecVariances, Catch::Approx(expectedVariances));
+    checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
 }
 
 /*
@@ -161,11 +180,5 @@ TEST_CASE ("Test PCA on toy data auto selection of components", "[pca-toy-auto-s
     vecPrincipalAxes = std::vector<float>(principalAxes, principalAxes + (numFeatures * numComponentsChosen));
     vecVariances = std::vector<float>(variances, variances + numComponentsChosen);
 
-    REQUIRE_THAT(vecPrincipalComponents, Catch::Approx(expectedPrincipalComponents) || Catch::Approx(expectedPrincipalComponentsNeg));
-    if (vecPrincipalComponents[0] == expectedPrincipalComponents[0]) {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxes));
-    } else {
-        REQUIRE_THAT(vecPrincipalAxes, Catch::Approx(expectedPrincipalAxesNeg));
-    }
-    REQUIRE_THAT(vecVariances, Catch::Approx(expectedVariances));
+    checkPCAResult(vecVariances, vecPrincipalComponents, vecPrincipalAxes, expectedVariances, expectedPrincipalComponents, expectedPrincipalAxes);
 }
