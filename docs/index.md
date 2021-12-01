@@ -58,3 +58,7 @@ Since Pudding is my personal project, I am trying my best to add more supported 
 ## Clustering
 
 * [KMeans](kmeans.md).
+
+## Dimension Reduction
+
+* [PCA](pca.md).
