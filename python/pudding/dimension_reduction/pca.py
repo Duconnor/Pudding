@@ -41,6 +41,7 @@ def pca(X, n_components=None):
     n_components_chosen = 0
 
     # Prepare the function being called
+    # FIXME: Change c_pca_reduction to c_pca maybe?
     c_pca_reduction = _LIB.pca
     c_pca_reduction.restype = None
     c_pca_reduction.argtypes = [

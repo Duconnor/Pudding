@@ -81,9 +81,6 @@ void computePairwiseEuclideanDistanceKerenl(const float* refX, const float* quer
 
     // This kernel uses a 2D view of threads
     // Each thread (x, y) is responsible for the result in the index of (y, x) in the dist matrix
-    int distIdxX = threadIdx.y + blockDim.y * blockIdx.y;
-    int distIdxY = threadIdx.x + blockDim.x * blockIdx.x;
-
     // Use shared memory
     extern __shared__ float sharedMem[];
     float* sharedRefX = sharedMem;
@@ -92,52 +89,61 @@ void computePairwiseEuclideanDistanceKerenl(const float* refX, const float* quer
     const int sharedMemIdxX = threadIdx.y;
     const int sharedMemIdxY = threadIdx.x;
 
-    int numThreadsGrid = (gridDim.x * gridDim.y) * (blockDim.x * blockDim.y);
-    const int distLoopRound = (numExamplesQuery * numExamplesRef) % numThreadsGrid == 0 ? (numExamplesQuery * numExamplesRef) / numThreadsGrid : (numExamplesQuery * numExamplesRef) / numThreadsGrid + 1;
-    for (int i = 0; i < distLoopRound; i++) {
+    const int refLoopRound = numExamplesRef % (gridDim.y * blockDim.y) == 0 ? numExamplesRef / (gridDim.y * blockDim.y) : numExamplesRef / (gridDim.y * blockDim.y) + 1;
+    const int queryLoopRound = numExamplesQuery % (gridDim.x * blockDim.x) == 0 ? numExamplesQuery / (gridDim.x * blockDim.x) : numExamplesQuery / (gridDim.x * blockDim.x) + 1;
 
-        /* It's kind of confusing here so I think it would be better to clarify the design here.
-         *
-         * When it comes to write to the dist matrix (i.e. the output matrix), (threadIdx.x, threadIdx.y) is responsible for element at index (threadIdx.y + blockDim.y * blockIdx.y, threadIdx.x + blockDim.x * blockIdx.x).
-         * 
-         * When it comes to load the shared memory, (theradIdx.x, threadIdx.y) is responsible for loading the element at index (threadIdx.y, threadIdx.x + blockDim.y * blockDim.y) from refX **and** the element at index (threadIdx.y, threaIdx.x + blockDim.x * blockDim.x) from queryX.
-         * 
-         * Therefore, the block must be a square, or else the number of queries we load won't match the number of queries we need when computing the distance. And clearly such design choice aims to enable coalesced memory access whenever we read/write to the global memory.
-         */
+    int distIdxX = threadIdx.y + blockDim.y * blockIdx.y;
+    int idxYRefX = threadIdx.x + blockDim.y * blockIdx.y;
+    for (int i = 0; i < refLoopRound; i++) {
 
-        const int idxYRefX = threadIdx.x + blockDim.y * blockIdx.y;
-        const int idxYQueryX = threadIdx.x + blockDim.x * blockIdx.x;
-        int idxXRefX = threadIdx.y;
-        int idxXQueryX = threadIdx.y;
-        const int singleDistLoopRound = numFeatures % blockDim.x == 0 ? numFeatures / blockDim.x : numFeatures / blockDim.x + 1;
+        int distIdxY = threadIdx.x + blockDim.x * blockIdx.x;
+        int idxYQueryX = threadIdx.x + blockDim.x * blockIdx.x;
+        for (int j = 0; j < queryLoopRound; j++) {
 
-        float distAccumlator = 0.0;
-        for (int j = 0; j < singleDistLoopRound; j++) {
-            // Load the data from queryX and refX respectively
-            sharedRefX[sharedMemIdxX * blockDim.y + sharedMemIdxY] = idxXRefX < numFeatures && idxYRefX < numExamplesRef ? refX[idxXRefX * numExamplesRef + idxYRefX] : 0;
-            sharedQueryX[sharedMemIdxX * blockDim.y + sharedMemIdxY] = idxXQueryX < numFeatures && idxYQueryX < numExamplesQuery ? queryX[idxXQueryX * numExamplesQuery + idxYQueryX] : 0;
+            /* It's kind of confusing here so I think it would be better to clarify the design here.
+            *
+            * When it comes to write to the dist matrix (i.e. the output matrix), (threadIdx.x, threadIdx.y) is responsible for element at index (threadIdx.y + blockDim.y * blockIdx.y, threadIdx.x + blockDim.x * blockIdx.x).
+            * 
+            * When it comes to load the shared memory, (theradIdx.x, threadIdx.y) is responsible for loading the element at index (threadIdx.y, threadIdx.x + blockDim.y * blockDim.y) from refX **and** the element at index (threadIdx.y, threaIdx.x + blockDim.x * blockDim.x) from queryX.
+            * 
+            * Therefore, the block must be a square, or else the number of queries we load won't match the number of queries we need when computing the distance. And clearly such design choice aims to enable coalesced memory access whenever we read/write to the global memory.
+            */
 
-            // Wait until all threads finish loading
-            __syncthreads();
+            int idxXRefX = threadIdx.y;
+            int idxXQueryX = threadIdx.y;
+            const int singleDistLoopRound = numFeatures % blockDim.x == 0 ? numFeatures / blockDim.x : numFeatures / blockDim.x + 1;
 
-            // Compute the distance (partial results)
-            for (int j = 0; j < blockDim.x; j++) {
-                float temp = sharedRefX[i * blockDim.y + sharedMemIdxX] - sharedQueryX[i * blockDim.y + sharedMemIdxY];
-                distAccumlator += temp * temp;
+            float distAccumlator = 0.0;
+            for (int k = 0; k < singleDistLoopRound; k++) {
+                // Load the data from queryX and refX respectively
+                sharedRefX[sharedMemIdxX * blockDim.y + sharedMemIdxY] = idxXRefX < numFeatures && idxYRefX < numExamplesRef ? refX[idxXRefX * numExamplesRef + idxYRefX] : 0;
+                sharedQueryX[sharedMemIdxX * blockDim.y + sharedMemIdxY] = idxXQueryX < numFeatures && idxYQueryX < numExamplesQuery ? queryX[idxXQueryX * numExamplesQuery + idxYQueryX] : 0;
+
+                // Wait until all threads finish loading
+                __syncthreads();
+
+                // Compute the distance (partial results)
+                for (int k = 0; k < blockDim.x; k++) {
+                    float temp = sharedRefX[k * blockDim.y + sharedMemIdxX] - sharedQueryX[k * blockDim.y + sharedMemIdxY];
+                    distAccumlator += temp * temp;
+                }
+
+                // Wait for all threads to finish computation before we go to the second loop and change the value in shared memory
+                __syncthreads();
+
+                idxXRefX += blockDim.x;
+                idxXQueryX += blockDim.x;
+            }
+            if (distIdxX < numExamplesRef && distIdxY < numExamplesQuery) {
+                dist[distIdxX * numExamplesQuery + distIdxY] = distAccumlator;
             }
 
-            // Wait for all threads to finish computation before we go to the second loop and change the value in shared memory
-            __syncthreads();
-
-            idxXRefX += blockDim.x;
-            idxXQueryX += blockDim.x;
-        }
-        if (distIdxX < numExamplesRef && distIdxY < numExamplesQuery) {
-            dist[distIdxX * numExamplesQuery + distIdxY] = distAccumlator;
+            distIdxY += gridDim.x * blockDim.x;
+            idxYQueryX += gridDim.x * blockDim.x;
         }
 
-        distIdxX += gridDim.x * blockDim.x;
-        distIdxY += gridDim.y * blockDim.y;
+        distIdxX += gridDim.y * blockDim.y;
+        idxYRefX += gridDim.y * blockDim.y;
     }
 }
 
@@ -191,5 +197,5 @@ void wrapperComputePairwiseEuclideanDistanceKerenl(const float* refX, const floa
     dim3 GRID(min(255, numExamplesQuery / BLOCKWIDTH + 1), min(255, numExamplesRef / BLOCKWIDTH + 1), 1);
     const int SHAREDMEMSIZE = sizeof(float) * BLOCKWIDTH * BLOCKWIDTH * 2;
     // Launch the kernel
-    computePairwiseEuclideanDistanceKerenl<<<BLOCK, GRID, SHAREDMEMSIZE>>>(refX, queryX, numExamplesRef, numExamplesQuery, numFeatures, dist);
+    computePairwiseEuclideanDistanceKerenl<<<GRID, BLOCK, SHAREDMEMSIZE>>>(refX, queryX, numExamplesRef, numExamplesQuery, numFeatures, dist);
 }
