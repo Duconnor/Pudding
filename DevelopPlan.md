@@ -11,3 +11,13 @@ Unit test for every module.
 * 2021.11.1 - 2021.12.1: finish the initial version. I should have implemented at least two clustering algorithms and provide python bindings for them.
 * 2021.12.1 - 2022.1.1: continue writing for other possible functions, refactor the code if needed. Also, benchmark all algorithms implemented so far and compare them with the CPU implementation in scikit-learn.
 * 2021.1.1 - 2022.3.1: publish the project on GitHub with a README providing basic information (what is this, how to use it), also make a websit for it and host the official website on my github.io page.
+
+## TODOs
+Order reflects priority, the one on the top has the highest priority.
+* Implement KDE.
+* There is a bug in the kmeans implementation, see the corresponding TODO in the kmeans.cu file.
+* Optimize the transpose matrix function (creating a cublas handle inside this function is extremely inefficient).
+* Benchmark kmeans by gradually increasing the number of points, not the number of clusters.
+* Benchmark PCA with respect to scikit-learn.
+* Change the reference on PCA's site by using the offical citation provided in StackOverflow.
+* Think more carefully about the choice of the block size (i.e. the number of threads within the block).

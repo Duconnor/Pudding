@@ -159,6 +159,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
 
     // Initialize the cublas handle
     cublasHandle_t cublasHandle;
+    // FIXME: Wrap this with the CUBLAS_CALL macro
     cublasCreate(&cublasHandle);
     // These are useful when calling cublas functions
     float one = 1.0, zero = 0.0, negOne = -1.0;

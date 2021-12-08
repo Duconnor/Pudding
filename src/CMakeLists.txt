@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.18)
 
 # Set the head files
 set(HEADER_LIST "${PROJECT_SOURCE_DIR}/include/pudding/clustering.h"
-                "${PROJECT_SOURCE_DIR}/include/pudding/dimension_reduction.h")
+                "${PROJECT_SOURCE_DIR}/include/pudding/dimension_reduction.h"
+                "${PROJECT_SOURCE_DIR}/include/pudding/estimation.h")
 
 # We also define some useful helper functions in the header file
 set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/include/helper/helper.h"
@@ -15,6 +16,8 @@ set(SOURCE_LIST "clustering/kmeans.cc"
                 "clustering/kmeans.cu"
                 "dimension_reduction/pca.cc"
                 "dimension_reduction/pca.cu"
+                "estimation/kde.cc"
+                "estimation/kde.cu"
                 "helper/helper.cu")
 
 # Build a shared library
@@ -33,7 +36,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # For debug
     target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-G>)
 else()
-    # For automatical optimization
+    # For automatic optimization
     target_compile_options(pudding PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas -O3>)
 endif()
 

@@ -1,4 +1,4 @@
-# Enable tests for clustering algorithms
+# Enable tests for dimension reduction algorithms
 add_executable(test_pca "src/test_pca.cc")
 
 # The test should be linked to both the main library and the Catch2 testing library and the helper library

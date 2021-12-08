@@ -8,6 +8,8 @@
 #include <helper/helper.cuh>
 #include <helper/helper_CUDA.h>
 
+#include <helper.h>
+
 TEST_CASE ("Test matrix vector addition kernel", "[matrix-vector-addition]") {
     // Prepare the test data
     const int numRow = 3;
@@ -154,4 +156,51 @@ TEST_CASE ("Test array initialization", "[array-initialization]") {
     }
     // Free all resources
     CUDA_CALL( cudaFree(deviceVec) );
+}
+
+TEST_CASE ("Test pair wise euclidean distance computation", "[pair-wise-euclidean-distance]") {
+    // Prepare the test data
+    const int numExamplesRef = 3;
+    const int numExamplesQuery = 2;
+    const int numFeatures = 2;
+
+    std::vector<std::vector<float>> refX = {{0, 2, -1}, {1, 1, -2}};
+    std::vector<std::vector<float>> queryX = {{0, 2}, {1, -1}};
+
+    std::vector<std::vector<float>> expectedDist = {{0, 8}, {4, 4}, {10, 10}};
+
+    // Copy data to device
+    float* deviceRefX;
+    float* deviceQueryX;
+
+    CUDA_CALL( cudaMalloc(&deviceRefX, sizeof(float) * numFeatures * numExamplesRef) );
+    CUDA_CALL( cudaMalloc(&deviceQueryX, sizeof(float) * numFeatures * numExamplesQuery) );
+
+    CUDA_CALL( cudaMemcpy(deviceRefX, flatten(refX).data(), sizeof(float) * numFeatures * numExamplesRef, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpy(deviceQueryX, flatten(queryX).data(), sizeof(float) * numFeatures * numExamplesQuery, cudaMemcpyHostToDevice) );
+
+    // Prepare for output
+    float* deviceDist;
+
+    CUDA_CALL( cudaMalloc(&deviceDist, sizeof(float) * numExamplesRef * numExamplesQuery) );
+
+    // Call the function
+    wrapperComputePairwiseEuclideanDistanceKerenl(deviceRefX, deviceQueryX, numExamplesRef, numExamplesQuery, numFeatures, deviceDist);
+
+    // Copy the output back to host
+    float* dist = (float*)malloc(sizeof(float) * numExamplesRef * numExamplesQuery);
+
+    CUDA_CALL( cudaMemcpy(dist, deviceDist, sizeof(float) * numExamplesRef * numExamplesQuery, cudaMemcpyDeviceToHost) );
+
+    std::vector<float> vecDist(dist, dist + (numExamplesRef * numExamplesQuery));
+
+    // Check
+    REQUIRE_THAT(vecDist, Catch::Approx(flatten(expectedDist)));
+
+    // Free resources
+    CUDA_CALL( cudaFree(deviceRefX) );
+    CUDA_CALL( cudaFree(deviceQueryX) );
+    if (dist) {
+        free(dist);
+    }
 }

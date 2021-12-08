@@ -30,4 +30,12 @@ void transposeMatrix(float* matrix, const int numRow, const int numCol);
  */
 void wrapperInitializeAllElementsToXKernel(float* vec, const float X, const int numElements);
 
+/*
+ * This is a wrapper function for computing the **squared** pair-wise euclidean distance between two set of points.
+ * It can be viewed as a generalized N-body problem, and is useful in many applications ranging from KDE to KNN.
+ * 
+ * Note: to enable coalesced memory access, refX and queryX are assumed to have each column as an example. And the dist will have shape (numExamplesRef, numExamplesQuery).
+ */
+void wrapperComputePairwiseEuclideanDistanceKerenl(const float* refX, const float* queryX, const int numExamplesRef, const int numExamplesQuery, const int numFeatures, float* dist);
+
 #endif
