@@ -6,7 +6,7 @@ Pudding enables you to run various machine learning algorithms on Nvidia's GPU. 
 
 # Installation
 
-*Please be aware that, currently Pudding has only been tested on Linux.*
+*Currently Pudding has only been tested on Linux.*
 
 ## Dependencies
 
@@ -61,4 +61,8 @@ Since Pudding is my personal project, I am trying my best to add more supported 
 
 ## Dimension Reduction
 
-* [PCA](pca.md).
+* [Principal Component Analysis](pca.md).
+
+## Density Estimation
+
+* [Kernel Density Estimation](kde.md).
