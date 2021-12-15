@@ -26,11 +26,13 @@ void determineMembershipKernel(const float* X, const float* centers, int* member
     const int idxSampleSharedMem = threadIdx.x;
 
     // The first 'numCenters' threads in this block are responsible for loading the data of centers
-    // FIXME: What if numCenters > blockWidth??
-    if (threadIdx.x < numCenters) {
+    // TODO: We can't just load all centers into the shared memory, there wouldn't be enough space in some extreme case.
+    int sharedCentersIdx = threadIdx.x;
+    while (sharedCentersIdx < numCenters) {
         for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
-            sharedCenters[idxFeature * numCenters + threadIdx.x] = centers[idxFeature * numCenters + threadIdx.x];
+            sharedCenters[idxFeature * numCenters + sharedCentersIdx] = centers[idxFeature * numCenters + sharedCentersIdx];
         }
+        sharedCentersIdx += blockDim.x;
     }
     __syncthreads();
 
@@ -156,11 +158,11 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
 
     // Determine the block width
     const int BLOCKWIDTH = 1024;
+    const int MAXSHAREDMEMBYTES = 48 * 1024; // The maximum size of the shared memory is 48KB.
 
     // Initialize the cublas handle
     cublasHandle_t cublasHandle;
-    // FIXME: Wrap this with the CUBLAS_CALL macro
-    cublasCreate(&cublasHandle);
+    CUBLAS_CALL( cublasCreate(&cublasHandle) );
     // These are useful when calling cublas functions
     float one = 1.0, zero = 0.0, negOne = -1.0;
 
@@ -174,7 +176,10 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     while (!endFlag) {        
         // Determine the membership of each sample
         int numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
-        int numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + sizeof(float) * numCenters * numFeatures;        
+        int numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + sizeof(float) * numCenters * numFeatures;
+        if (numBytesSharedMemory > MAXSHAREDMEMBYTES) {
+            assert(false && "No enough shared memory");
+        }
         determineMembershipKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceCenters, deviceMembership, numSamples, numFeatures, numCenters);;  
 
         // Save the result of old centers
@@ -184,6 +189,9 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
         // Update the center estimation
         numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
         numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + BLOCKWIDTH * sizeof(float);
+        if (numBytesSharedMemory > MAXSHAREDMEMBYTES) {
+            assert(false && "No enough shared memory");
+        }
 
         for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
             CUDA_CALL( cudaMemset(deviceSamplesCount, 0, sizeof(int)) );
