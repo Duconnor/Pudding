@@ -1,6 +1,8 @@
 #ifndef HELPER_HELPER_CUH
 #define HELPER_HELPER_CUH
 
+#define MAXSHAREDMEMBYTES 48 * 1024 // The maximum shared memory one block can use is 48KB
+
 void copyToHostAndDisplayFloat(const float* devicePtr, int row, int col);
 
 /*

@@ -158,7 +158,6 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
 
     // Determine the block width
     const int BLOCKWIDTH = 1024;
-    const int MAXSHAREDMEMBYTES = 48 * 1024; // The maximum size of the shared memory is 48KB.
 
     // Initialize the cublas handle
     cublasHandle_t cublasHandle;

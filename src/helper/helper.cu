@@ -152,6 +152,10 @@ void wrapperMatrixVectorAddition(const float* matrix, const int numRow, const in
     const int BLOCKWIDTH = 1024;
     const int BLOCKSIZE = min(65535, ((numCol) + BLOCKWIDTH - 1) / BLOCKWIDTH);
     const int SHAREDMEMSIZE = sizeof(float) * numRow;
+    // Check whether we have enough shared memory
+    if (SHAREDMEMSIZE > MAXSHAREDMEMBYTES) {
+        assert(false && "No enough shared memory");
+    }
     // Launch the kernel
     matrixVectorAdditionKernel<<<BLOCKSIZE, BLOCKWIDTH, SHAREDMEMSIZE>>>(matrix, numRow, numCol, vector, scale, res);
 }
@@ -196,6 +200,10 @@ void wrapperComputePairwiseEuclideanDistanceKerenl(const float* refX, const floa
     dim3 BLOCK(BLOCKWIDTH, BLOCKWIDTH, 1);
     dim3 GRID(min(255, numExamplesQuery / BLOCKWIDTH + 1), min(255, numExamplesRef / BLOCKWIDTH + 1), 1);
     const int SHAREDMEMSIZE = sizeof(float) * BLOCKWIDTH * BLOCKWIDTH * 2;
+    // Check whether we have enough shared memory
+    if (SHAREDMEMSIZE > MAXSHAREDMEMBYTES) {
+        assert(false && "No enough shared memory");
+    }
     // Launch the kernel
     computePairwiseEuclideanDistanceKerenl<<<GRID, BLOCK, SHAREDMEMSIZE>>>(refX, queryX, numExamplesRef, numExamplesQuery, numFeatures, dist);
 }
