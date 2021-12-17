@@ -141,17 +141,14 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     int* deviceMembership;
     float* deviceOldCenters;
     int* deviceSamplesCount;
-    // These are temporary array here for transpose
-    float* tempDeviceX;
-    float* tempDeviceCenters;
 
     CUDA_CALL( cudaMalloc(&deviceX, sizeof(float) * numSamples * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceCenters, sizeof(float) * numCenters * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceMembership, sizeof(int) * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceOldCenters, sizeof(float) * numCenters * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceSamplesCount, sizeof(int)) );
-    CUDA_CALL( cudaMalloc(&tempDeviceX, sizeof(float) * numSamples * numFeatures) );
-    CUDA_CALL( cudaMalloc(&tempDeviceCenters, sizeof(float) * numCenters * numFeatures) );
+    CUDA_CALL( cudaMemcpy(deviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpy(deviceCenters, centers, sizeof(float) * numCenters * numFeatures, cudaMemcpyHostToDevice) );
 
     // Malloc space on CPU
     int* samplesCount = (int*)malloc(sizeof(int));
@@ -163,14 +160,11 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     cublasHandle_t cublasHandle;
     CUBLAS_CALL( cublasCreate(&cublasHandle) );
     // These are useful when calling cublas functions
-    float one = 1.0, zero = 0.0, negOne = -1.0;
+    float one = 1.0, negOne = -1.0;
 
     // Transpose deviceX, deviceCenters here to enable coalesced memory access in the kernel
-    CUDA_CALL( cudaMemcpy(tempDeviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
-    CUDA_CALL( cudaMemcpy(tempDeviceCenters, centers, sizeof(float) * numCenters * numFeatures, cudaMemcpyHostToDevice) );
-
-    CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numSamples, numFeatures, &one, tempDeviceX, numFeatures, &zero, tempDeviceX, numSamples, deviceX, numSamples) );
-    CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numCenters, numFeatures, &one, tempDeviceCenters, numFeatures, &zero, tempDeviceCenters, numCenters, deviceCenters, numCenters) );
+    transposeMatrix(deviceX, numSamples, numFeatures);
+    transposeMatrix(deviceCenters, numCenters, numFeatures);
 
     while (!endFlag) {        
         // Determine the membership of each sample
@@ -222,10 +216,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
 
     // Copy the result back to host
     // Tranpose the deviceCenters back
-    CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numFeatures, numCenters, &one, deviceCenters, numCenters, &zero, deviceCenters, numFeatures, tempDeviceCenters, numFeatures) );
-    float* temp = tempDeviceCenters;
-    tempDeviceCenters = deviceCenters;
-    deviceCenters = temp;
+    transposeMatrix(deviceCenters, numFeatures, numCenters);
 
     CUDA_CALL( cudaMemcpy(centers, deviceCenters, sizeof(float) * numCenters * numFeatures, cudaMemcpyDeviceToHost) );
     CUDA_CALL( cudaMemcpy(membership, deviceMembership, sizeof(int) * numSamples, cudaMemcpyDeviceToHost) );
@@ -237,8 +228,6 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     CUDA_CALL( cudaFree(deviceMembership) );
     CUDA_CALL( cudaFree(deviceOldCenters) );
     CUDA_CALL( cudaFree(deviceSamplesCount) );
-    CUDA_CALL( cudaFree(tempDeviceCenters) );
-    CUDA_CALL( cudaFree(tempDeviceX) );
 
     // Free resources on CPU
     if (samplesCount) {

@@ -17,7 +17,7 @@ Order reflects priority, the one on the top has the highest priority.
 - [x] Implement KDE.
 - [x] There is a bug in the kmeans implementation, see the corresponding TODO in the kmeans.cu file.
 - [x] Add assertion check for every shared memory allocation.
-- [ ] Optimize the transpose matrix function (creating a cublas handle inside this function is extremely inefficient).
+- [x] Use the helper function to transpose matrix in kmeans.cu.
 - [ ] Benchmark kmeans by gradually increasing the number of points, not the number of clusters.
 - [ ] Benchmark PCA with respect to scikit-learn.
 - [ ] Change the reference on PCA's site by using the offical citation provided in StackOverflow.

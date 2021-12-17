@@ -178,7 +178,7 @@ void transposeMatrix(float* matrix, const int numRow, const int numCol) {
 
     float* tempMatrix = NULL;
     CUDA_CALL( cudaMalloc(&tempMatrix, sizeof(float) * numRow *numCol) );
-    CUDA_CALL( cudaMemcpy(tempMatrix, matrix, sizeof(float) * numRow * numCol, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpy(tempMatrix, matrix, sizeof(float) * numRow * numCol, cudaMemcpyDeviceToDevice) );
     CUBLAS_CALL( cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numRow, numCol, &one, tempMatrix, numCol, &zero, tempMatrix, numRow, matrix, numRow) );
 
     // Free resources
