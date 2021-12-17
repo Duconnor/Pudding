@@ -18,8 +18,9 @@ Order reflects priority, the one on the top has the highest priority.
 - [x] There is a bug in the kmeans implementation, see the corresponding TODO in the kmeans.cu file.
 - [x] Add assertion check for every shared memory allocation.
 - [x] Use the helper function to transpose matrix in kmeans.cu.
-- [ ] Benchmark kmeans by gradually increasing the number of points, not the number of clusters.
-- [ ] Benchmark PCA with respect to scikit-learn.
+- [x] Benchmark kmeans by gradually increasing the number of points, not the number of clusters.
+- [x] Benchmark PCA with respect to scikit-learn.
+- [ ] Optimize PCA (maybe use a eco mode?)
 - [ ] Change the reference on PCA's site by using the offical citation provided in StackOverflow.
 - [ ] Think more carefully about the choice of the block size (i.e. the number of threads within the block).
 - [ ] The kmeans function will not work for large data samples (many high dimensional data points with many centers). Currently, I just add a simple assertion to check for this and abort the program if there is not enough shared memory.
