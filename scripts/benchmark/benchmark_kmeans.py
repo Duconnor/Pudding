@@ -16,7 +16,7 @@ def benchmarking_kmeans():
     n_clusters = 128
 
     times = {'Pudding': [], 'Scikit-learn': []}
-    n_examples_list = [200, 1000, 5000, 10000, 50000, 100000]
+    n_examples_list = [200, 1000, 2500, 5000, 7500, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000]
 
     for n_examples in n_examples_list:
         X, _ = make_blobs(n_samples=int(n_examples), n_features=3, centers=n_clusters, cluster_std=1)

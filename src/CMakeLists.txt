@@ -4,7 +4,8 @@ cmake_minimum_required(VERSION 3.18)
 # Set the head files
 set(HEADER_LIST "${PROJECT_SOURCE_DIR}/include/pudding/clustering.h"
                 "${PROJECT_SOURCE_DIR}/include/pudding/dimension_reduction.h"
-                "${PROJECT_SOURCE_DIR}/include/pudding/estimation.h")
+                "${PROJECT_SOURCE_DIR}/include/pudding/estimation.h"
+                "${PROJECT_SOURCE_DIR}/include/pudding/classification.h")
 
 # We also define some useful helper functions in the header file
 set(HELPER_HEADER_LIST "${PROJECT_SOURCE_DIR}/include/helper/helper.h"
@@ -18,6 +19,8 @@ set(SOURCE_LIST "clustering/kmeans.cc"
                 "dimension_reduction/pca.cu"
                 "estimation/kde.cc"
                 "estimation/kde.cu"
+                "classification/naive_bayes.cc"
+                "classification/naive_bayes.cu"
                 "helper/helper.cu")
 
 # Build a shared library
