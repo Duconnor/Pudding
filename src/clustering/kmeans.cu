@@ -36,10 +36,15 @@ void determineMembershipKernel(const float* X, const float* centers, int* member
     }
     __syncthreads();
 
-    while (idxSample < numSamples) {
+    // We need to make sure all threads in a block loop for the same number of times or else the behavior of __syncthreads() is undefined. See more in https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#synchronization-functions.
+    const int loopCount = numSamples % (gridDim.x * blockDim.x) == 0 ? numSamples / (gridDim.x * blockDim.x) : numSamples / (gridDim.x * blockDim.x) + 1;
+    int loopIdx = 0;
+    while (loopIdx < loopCount) {
         // Load this block's data into the shared memory
         for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
-            sharedX[idxFeature * numSamplesThisBlock + idxSampleSharedMem] = X[idxFeature * numSamples + idxSample];
+            if (idxSample < numSamples) {
+                sharedX[idxFeature * numSamplesThisBlock + idxSampleSharedMem] = X[idxFeature * numSamples + idxSample];
+            }
         }
         __syncthreads();
 
@@ -55,8 +60,11 @@ void determineMembershipKernel(const float* X, const float* centers, int* member
                 minDistIdx = idxCenter;
             }
         }
-        membership[idxSample] = minDistIdx;
+        if (idxSample < numSamples) {
+            membership[idxSample] = minDistIdx;
+        }
         idxSample += gridDim.x * blockDim.x;
+        loopIdx++;
     }
 }
 
@@ -80,12 +88,15 @@ void updateCentersKernel(const float* X, const int* membership, float* centers, 
     sharedSampleCount[idxSampleSharedMem] = 0;
     __syncthreads();
 
-    while (idxSample < numSamples) {
+    // Same reason as above, need to make sure all threads in a block loop for the same number of times.
+    const int loopCount = numSamples % (gridDim.x * blockDim.x) == 0 ? numSamples / (gridDim.x * blockDim.x) : numSamples / (gridDim.x * blockDim.x) + 1;
+    int loopIdx = 0;
+    while (loopIdx < loopCount) {
         // Initialize the shared memory
-        int member = membership[idxSample];
+        int member = idxSample < numSamples ? membership[idxSample] : -1;
         sharedSampleCount[idxSampleSharedMem] = member == idxCenter;
         for (int idxFeature = 0; idxFeature < numFeatures; idxFeature++) {
-            sharedX[idxFeature * numSamplesSharedMem + idxSampleSharedMem] = X[idxFeature * numSamples + idxSample] * (member == idxCenter);
+            sharedX[idxFeature * numSamplesSharedMem + idxSampleSharedMem] = idxSample < numSamples ? X[idxFeature * numSamples + idxSample] * (member == idxCenter) : 0;
         }
         __syncthreads();
 
@@ -115,6 +126,7 @@ void updateCentersKernel(const float* X, const int* membership, float* centers, 
         }
 
         idxSample += gridDim.x * blockDim.x;
+        loopIdx++;
     }
 }
 

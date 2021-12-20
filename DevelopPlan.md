@@ -20,6 +20,7 @@ Order reflects priority, the one on the top has the highest priority.
 - [x] Use the helper function to transpose matrix in kmeans.cu.
 - [x] Benchmark kmeans by gradually increasing the number of points, not the number of clusters.
 - [x] Benchmark PCA with respect to scikit-learn.
+- [x] If __syncthreads() is used in a conditional code, the condition must evaluates identically across the entire thread block. Fix this bug in kernels used in kmeans.
 - [ ] Optimize PCA (maybe use a eco mode?)
 - [ ] Change the reference on PCA's site by using the offical citation provided in StackOverflow.
 - [ ] Think more carefully about the choice of the block size (i.e. the number of threads within the block).
