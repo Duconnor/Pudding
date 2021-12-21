@@ -147,6 +147,17 @@ void computePairwiseEuclideanDistanceKerenl(const float* refX, const float* quer
     }
 }
 
+__global__
+void generateMaskVectorKernel(const int* labelVec, const int targetLabel, const int numElements, float* maskVec) {
+    int idxSample = threadIdx.x;
+
+    while (idxSample < numElements) {
+        maskVec[idxSample] = labelVec[idxSample] == targetLabel;
+
+        idxSample += gridDim.x * blockDim.x;
+    }
+}
+
 void wrapperMatrixVectorAddition(const float* matrix, const int numRow, const int numCol, const float* vector, float scale, float* res) {
     // Kernel configuration
     const int BLOCKWIDTH = 1024;
@@ -206,4 +217,12 @@ void wrapperComputePairwiseEuclideanDistanceKerenl(const float* refX, const floa
     }
     // Launch the kernel
     computePairwiseEuclideanDistanceKerenl<<<GRID, BLOCK, SHAREDMEMSIZE>>>(refX, queryX, numExamplesRef, numExamplesQuery, numFeatures, dist);
+}
+
+void wrapperGenerateMaskVectorKernel(const int* labelVec, const int targetLabel, const int numElements, float* maskVec) {
+    // Kernel configuration
+    const int BLOCKWIDTH = 1024;
+    const int NUMBLOCK = min(65535, ((numElements) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+    // Launch the kernel
+    generateMaskVectorKernel<<<NUMBLOCK, BLOCKWIDTH>>>(labelVec, targetLabel, numElements, maskVec);
 }

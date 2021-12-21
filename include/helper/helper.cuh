@@ -40,4 +40,11 @@ void wrapperInitializeAllElementsToXKernel(float* vec, const float X, const int 
  */
 void wrapperComputePairwiseEuclideanDistanceKerenl(const float* refX, const float* queryX, const int numExamplesRef, const int numExamplesQuery, const int numFeatures, float* dist);
 
+/*
+ * This is a wrapper function for generating a mask vector based on a given label vector and a given target label. Specifically, this function generate a new vector of the same size with the original label vector. The new vector consists of 1 and 0, for position where the label vector has the same value with the target label, the output will be 1.
+ *
+ * Note: the result vector is of type float because in many cases, it will be used for further computation.
+ */
+void wrapperGenerateMaskVectorKernel(const int* labelVec, const int targetLabel, const int numElements, float* maskVec);
+
 #endif

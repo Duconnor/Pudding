@@ -204,3 +204,39 @@ TEST_CASE ("Test pair wise euclidean distance computation", "[pair-wise-euclidea
         free(dist);
     }
 }
+
+TEST_CASE ("Test mask vector generation", "[mask-generation]") {
+    // Prepare the test data
+    const int numElements = 8;
+    const int targetLabel = 2;
+    std::vector<int> labelVec = {0, 1, 2, 1, 2, 0, 2, 10};
+
+    std::vector<float> expectedMaskVec = {0, 0, 1, 0, 1, 0, 1, 0};
+
+    // Copy data to device and also prepare space for result
+    int* deviceLabelVec = NULL;
+    float* deviceMaskVec = NULL;
+
+    CUDA_CALL( cudaMalloc(&deviceLabelVec, sizeof(int) * numElements) );
+    CUDA_CALL( cudaMalloc(&deviceMaskVec, sizeof(float) * numElements) );
+
+    CUDA_CALL( cudaMemcpy(deviceLabelVec, labelVec.data(), sizeof(int) * numElements, cudaMemcpyHostToDevice) );
+
+    // Launche the kernel
+    wrapperGenerateMaskVectorKernel(deviceLabelVec, targetLabel, numElements, deviceMaskVec);
+
+    // Copy data back to host
+    float* maskVec = (float*)malloc(sizeof(float) * numElements);
+    CUDA_CALL( cudaMemcpy(maskVec, deviceMaskVec, sizeof(float) * numElements, cudaMemcpyDeviceToHost) );
+
+    // Assertions
+    std::vector<float> vecMaskVec(maskVec, maskVec + numElements);
+    REQUIRE_THAT(vecMaskVec, Catch::Approx(expectedMaskVec));
+
+    if (maskVec) {
+        free(maskVec);
+    }
+    // Free all resources
+    CUDA_CALL( cudaFree(deviceLabelVec) );
+    CUDA_CALL( cudaFree(deviceMaskVec) );
+}
