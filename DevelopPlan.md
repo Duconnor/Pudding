@@ -21,7 +21,9 @@ Order reflects priority, the one on the top has the highest priority.
 - [x] Benchmark kmeans by gradually increasing the number of points, not the number of clusters.
 - [x] Benchmark PCA with respect to scikit-learn.
 - [x] If __syncthreads() is used in a conditional code, the condition must evaluates identically across the entire thread block. Fix this bug in kernels used in kmeans.
-- [ ] Optimize PCA (maybe use a eco mode?)
+- [x] Optimize PCA (maybe use a eco mode?)
+- [x] Implement Naive Bayes.
+- [ ] Refactor the Python binding to follow the OOP design.
 - [ ] Change the reference on PCA's site by using the offical citation provided in StackOverflow.
 - [ ] Think more carefully about the choice of the block size (i.e. the number of threads within the block).
 - [ ] The kmeans function will not work for large data samples (many high dimensional data points with many centers). Currently, I just add a simple assertion to check for this and abort the program if there is not enough shared memory.

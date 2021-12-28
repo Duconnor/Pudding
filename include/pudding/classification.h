@@ -24,8 +24,8 @@ extern "C" void naiveBayesMultinomialFit(const float* X, const int* y, const int
  * @param classProbability The fitted class probability, the output of function naiveBayesMultinomialFit
  * @param wordProbability The fitted word probability, the output of function naiveBayesMultinomialFit
  * @param numSamples The number of samples in X
- * @param numClasses The number of classes
  * @param vocabularySize The size of the vocabulary
+ * @param numClasses The number of classes
  * @param predictions The predictions made by the Naive Bayes model, the output of this function
  */
 extern "C" void naiveBayesMultinomialPredict(const float* X, const float* classProbability, const float* wordProbability, const int numSamples, const int vocabularySize, const int numClasses, int* predictions);

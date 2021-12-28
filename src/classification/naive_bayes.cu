@@ -123,13 +123,13 @@ void _naiveBayesMultinomialPredictGPU(const float* X, const float* classProbabil
     wrapperApplyUnaryFunctionKernel(deviceWordProbability, numClasses * vocabularySize, LOG);
 
     // 2. The matrix multiplication between X and log(wordProbability)
-    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numClasses, numSamples, vocabularySize, &one, deviceWordProbability, vocabularySize, deviceX, vocabularySize, &zero, devicePostProbability, numClasses) );
+    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numSamples, numClasses, vocabularySize, &one, deviceX, vocabularySize, deviceWordProbability, vocabularySize, &zero, devicePostProbability, numSamples) );
 
     // 3. Add the class probability matrix
-    wrapperMatrixVectorAddition(devicePostProbability, numSamples, numClasses, deviceClassProbability, one, devicePostProbability);
+    wrapperMatrixVectorAddition(devicePostProbability, numClasses, numSamples, deviceClassProbability, one, devicePostProbability);
+    transposeMatrix(devicePostProbability, numClasses, numSamples);
 
     // 4. Select the argmax
-    copyToHostAndDisplayFloat(devicePostProbability, numSamples, numClasses);
     wrapperMatrixArgMaxRowKernel(devicePostProbability, numSamples, numClasses, deviceMaxPostProbability, devicePredictions);
 
     // Copy the result back to host

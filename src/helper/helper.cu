@@ -150,7 +150,7 @@ void computePairwiseEuclideanDistanceKerenl(const float* refX, const float* quer
 
 __global__
 void generateMaskVectorKernel(const int* labelVec, const int targetLabel, const int numElements, float* maskVec) {
-    int idxSample = threadIdx.x;
+    int idxSample = threadIdx.x + blockIdx.x * blockDim.x;
 
     while (idxSample < numElements) {
         maskVec[idxSample] = labelVec[idxSample] == targetLabel;
@@ -168,7 +168,7 @@ void applyUnaryFunctionKernel(float* vec, const int numElements, UNARY_FUNC_NAME
         default: assert(false && "Unsupported Unary Function");
     }
 
-    int idxSample = threadIdx.x;
+    int idxSample = threadIdx.x + blockIdx.x * blockDim.x;
 
     while (idxSample < numElements) {
         vec[idxSample] = unaryFunc(vec[idxSample]);
