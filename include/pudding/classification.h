@@ -17,4 +17,17 @@
  */
 extern "C" void naiveBayesMultinomialFit(const float* X, const int* y, const int numSamples, const int vocabularySize, const int numClasses, const float alpha, float* classProbability, float* wordProbability);
 
+/**
+ * Making predictions using the Naive Bayes classifier with the multinomial event model
+ *
+ * @param X The input data to classify, of shape (numSamples, vocabularySize)
+ * @param classProbability The fitted class probability, the output of function naiveBayesMultinomialFit
+ * @param wordProbability The fitted word probability, the output of function naiveBayesMultinomialFit
+ * @param numSamples The number of samples in X
+ * @param numClasses The number of classes
+ * @param vocabularySize The size of the vocabulary
+ * @param predictions The predictions made by the Naive Bayes model, the output of this function
+ */
+extern "C" void naiveBayesMultinomialPredict(const float* X, const float* classProbability, const float* wordProbability, const int numSamples, const int vocabularySize, const int numClasses, int* predictions);
+
 #endif

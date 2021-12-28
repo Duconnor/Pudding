@@ -240,3 +240,222 @@ TEST_CASE ("Test mask vector generation", "[mask-generation]") {
     CUDA_CALL( cudaFree(deviceLabelVec) );
     CUDA_CALL( cudaFree(deviceMaskVec) );
 }
+
+TEST_CASE ("Test compute log of every elements in a vector", "[element-wise-log]") {
+    // Prepare the test data
+    const int numElements = 10;
+    std::vector<float> vec = {1.0, 2.0, 3.0, 4.0, 5.0, 1000.0, 101.0, 10.23, 0.34, 0.78};
+
+    std::vector<float> expectedRes = {0, 0.69314718, 1.09861229, 1.38629436, 1.60943791, 6.90775528, 4.61512052, 2.32532458, -1.07880966, -0.24846136};
+
+    // Copy the data to device
+    float* deviceVec;
+    CUDA_CALL( cudaMalloc(&deviceVec, sizeof(float) * numElements) );
+    CUDA_CALL( cudaMemcpy(deviceVec, vec.data(), sizeof(float) * numElements, cudaMemcpyHostToDevice) );
+
+    // Launch the function
+    wrapperApplyUnaryFunctionKernel(deviceVec, numElements, LOG);
+    
+    // Copy data back to host
+    float* res = (float*)malloc(sizeof(float) * numElements);
+    CUDA_CALL( cudaMemcpy(res, deviceVec, sizeof(float) * numElements, cudaMemcpyDeviceToHost) );
+
+    std::vector<float> vecRes(res, res + numElements);
+
+    // Check
+    REQUIRE_THAT(vecRes, Catch::Approx(expectedRes));
+
+}
+
+TEST_CASE ("Test selecting the maximum element and its index from each row of a matrix on a small dataset", "[matrix-argmax-row-small]") {
+    // Prepare the test data
+    std::srand(0);
+
+    const int numRows = 200;
+    const int numCols = 100;
+
+    std::vector<std::vector<float>> matrix(numRows, std::vector<float>(numCols, 0.0));
+    std::vector<int> expectedMaxIdx(numRows, -1);
+    std::vector<float> expectedMaxVal(numRows, -1.0);
+    for (int i = 0; i < numRows; i++) {
+        float currentMax = -FLT_MAX, currentMaxIdx = -1;
+        for (int j = 0 ; j < numCols; j++) {
+            float randVal = rand() / (float)(RAND_MAX / 1000000000.0);
+            matrix[i][j] = randVal;
+            if (randVal > currentMax) {
+                currentMax = randVal;
+                currentMaxIdx = j;
+            }
+        }
+        expectedMaxIdx[i] = currentMaxIdx;
+        expectedMaxVal[i] = currentMax;
+    }
+
+    // Copy the data to device
+    float* deviceMatrix;
+    float* deviceMaxVal;
+    int* deviceMaxIdx;
+
+    CUDA_CALL( cudaMalloc(&deviceMatrix, sizeof(float) * numRows * numCols) );
+    CUDA_CALL( cudaMalloc(&deviceMaxVal, sizeof(float) * numRows) );
+    CUDA_CALL( cudaMalloc(&deviceMaxIdx, sizeof(int) * numRows) );
+
+    CUDA_CALL( cudaMemcpy(deviceMatrix, flatten(matrix).data(), sizeof(float) * numRows * numCols, cudaMemcpyHostToDevice) );
+
+    // Launch the function
+    wrapperMatrixArgMaxRowKernel(deviceMatrix, numRows, numCols, deviceMaxVal, deviceMaxIdx);
+
+    // Copy the result back to host and compare
+    float* maxVal = (float*)malloc(sizeof(float) * numRows);
+    int* maxIdx = (int*)malloc(sizeof(int) * numRows);
+
+    CUDA_CALL( cudaMemcpy(maxVal, deviceMaxVal, sizeof(float) * numRows, cudaMemcpyDeviceToHost) );
+    CUDA_CALL( cudaMemcpy(maxIdx, deviceMaxIdx, sizeof(int) * numRows, cudaMemcpyDeviceToHost) );
+
+    std::vector<float> vecMaxVal(maxVal, maxVal + numRows);
+    std::vector<int> vecMaxIdx(maxIdx, maxIdx + numRows);
+
+    REQUIRE_THAT(vecMaxVal, Catch::Approx(expectedMaxVal));
+    REQUIRE(vecMaxIdx == expectedMaxIdx);
+
+    // Free resources
+    CUDA_CALL( cudaFree(deviceMatrix) );
+    CUDA_CALL( cudaFree(deviceMaxVal) );
+    CUDA_CALL( cudaFree(deviceMaxIdx) );
+
+    if (maxVal) {
+        free(maxVal);
+    }
+    if (maxIdx) {
+        free(maxIdx);
+    }
+}
+
+
+TEST_CASE ("Test selecting the maximum element and its index from each row of a matrix on a large dataset", "[matrix-argmax-row-large]") {
+    // Prepare the test data
+    std::srand(0);
+
+    const int numRows = 70000;
+    const int numCols = 2000;
+
+    std::vector<std::vector<float>> matrix(numRows, std::vector<float>(numCols, 0.0));
+    std::vector<int> expectedMaxIdx(numRows, -1);
+    std::vector<float> expectedMaxVal(numRows, -1.0);
+    for (int i = 0; i < numRows; i++) {
+        float currentMax = -FLT_MAX, currentMaxIdx = -1;
+        for (int j = 0 ; j < numCols; j++) {
+            float randVal = rand() / (float)(RAND_MAX / 1000000000.0);
+            matrix[i][j] = randVal;
+            if (randVal > currentMax) {
+                currentMax = randVal;
+                currentMaxIdx = j;
+            }
+        }
+        expectedMaxIdx[i] = currentMaxIdx;
+        expectedMaxVal[i] = currentMax;
+    }
+
+    // Copy the data to device
+    float* deviceMatrix;
+    float* deviceMaxVal;
+    int* deviceMaxIdx;
+
+    CUDA_CALL( cudaMalloc(&deviceMatrix, sizeof(float) * numRows * numCols) );
+    CUDA_CALL( cudaMalloc(&deviceMaxVal, sizeof(float) * numRows) );
+    CUDA_CALL( cudaMalloc(&deviceMaxIdx, sizeof(int) * numRows) );
+
+    CUDA_CALL( cudaMemcpy(deviceMatrix, flatten(matrix).data(), sizeof(float) * numRows * numCols, cudaMemcpyHostToDevice) );
+
+    // Launch the function
+    wrapperMatrixArgMaxRowKernel(deviceMatrix, numRows, numCols, deviceMaxVal, deviceMaxIdx);
+
+    // Copy the result back to host and compare
+    float* maxVal = (float*)malloc(sizeof(float) * numRows);
+    int* maxIdx = (int*)malloc(sizeof(int) * numRows);
+
+    CUDA_CALL( cudaMemcpy(maxVal, deviceMaxVal, sizeof(float) * numRows, cudaMemcpyDeviceToHost) );
+    CUDA_CALL( cudaMemcpy(maxIdx, deviceMaxIdx, sizeof(int) * numRows, cudaMemcpyDeviceToHost) );
+
+    std::vector<float> vecMaxVal(maxVal, maxVal + numRows);
+    std::vector<int> vecMaxIdx(maxIdx, maxIdx + numRows);
+
+    // Given such many elements in the matrix (70000 * 2000 = 140000000) there will be several elements that are all maximum one. Therefore, it does not make any sense to compare the maximum index here.
+    REQUIRE_THAT(vecMaxVal, Catch::Approx(expectedMaxVal));
+
+    // Free resources
+    CUDA_CALL( cudaFree(deviceMatrix) );
+    CUDA_CALL( cudaFree(deviceMaxVal) );
+    CUDA_CALL( cudaFree(deviceMaxIdx) );
+
+    if (maxVal) {
+        free(maxVal);
+    }
+    if (maxIdx) {
+        free(maxIdx);
+    }
+}
+
+TEST_CASE ("Test selecting the maximum element and its index from each row of a matrix on negative elements", "[matrix-argmax-row-negative-elements]") {
+    // Prepare the test data
+    std::srand(0);
+
+    const int numRows = 200;
+    const int numCols = 100;
+
+    std::vector<std::vector<float>> matrix(numRows, std::vector<float>(numCols, 0.0));
+    std::vector<int> expectedMaxIdx(numRows, -1);
+    std::vector<float> expectedMaxVal(numRows, -1.0);
+    for (int i = 0; i < numRows; i++) {
+        float currentMax = -FLT_MAX, currentMaxIdx = -1;
+        for (int j = 0 ; j < numCols; j++) {
+            float randVal = -(rand() / (float)(RAND_MAX / 1000000000.0));
+            matrix[i][j] = randVal;
+            if (randVal > currentMax) {
+                currentMax = randVal;
+                currentMaxIdx = j;
+            }
+        }
+        expectedMaxIdx[i] = currentMaxIdx;
+        expectedMaxVal[i] = currentMax;
+    }
+
+    // Copy the data to device
+    float* deviceMatrix;
+    float* deviceMaxVal;
+    int* deviceMaxIdx;
+
+    CUDA_CALL( cudaMalloc(&deviceMatrix, sizeof(float) * numRows * numCols) );
+    CUDA_CALL( cudaMalloc(&deviceMaxVal, sizeof(float) * numRows) );
+    CUDA_CALL( cudaMalloc(&deviceMaxIdx, sizeof(int) * numRows) );
+
+    CUDA_CALL( cudaMemcpy(deviceMatrix, flatten(matrix).data(), sizeof(float) * numRows * numCols, cudaMemcpyHostToDevice) );
+
+    // Launch the function
+    wrapperMatrixArgMaxRowKernel(deviceMatrix, numRows, numCols, deviceMaxVal, deviceMaxIdx);
+
+    // Copy the result back to host and compare
+    float* maxVal = (float*)malloc(sizeof(float) * numRows);
+    int* maxIdx = (int*)malloc(sizeof(int) * numRows);
+
+    CUDA_CALL( cudaMemcpy(maxVal, deviceMaxVal, sizeof(float) * numRows, cudaMemcpyDeviceToHost) );
+    CUDA_CALL( cudaMemcpy(maxIdx, deviceMaxIdx, sizeof(int) * numRows, cudaMemcpyDeviceToHost) );
+
+    std::vector<float> vecMaxVal(maxVal, maxVal + numRows);
+    std::vector<int> vecMaxIdx(maxIdx, maxIdx + numRows);
+
+    REQUIRE_THAT(vecMaxVal, Catch::Approx(expectedMaxVal));
+    REQUIRE(vecMaxIdx == expectedMaxIdx);
+
+    // Free resources
+    CUDA_CALL( cudaFree(deviceMatrix) );
+    CUDA_CALL( cudaFree(deviceMaxVal) );
+    CUDA_CALL( cudaFree(deviceMaxIdx) );
+
+    if (maxVal) {
+        free(maxVal);
+    }
+    if (maxIdx) {
+        free(maxIdx);
+    }
+}

@@ -3,6 +3,10 @@
 
 #define MAXSHAREDMEMBYTES 48 * 1024 // The maximum shared memory one block can use is 48KB
 
+enum UNARY_FUNC_NAME {LOG};
+
+typedef float (*UNARY_FUNC_P)(float);
+
 void copyToHostAndDisplayFloat(const float* devicePtr, int row, int col);
 
 /*
@@ -46,5 +50,15 @@ void wrapperComputePairwiseEuclideanDistanceKerenl(const float* refX, const floa
  * Note: the result vector is of type float because in many cases, it will be used for further computation.
  */
 void wrapperGenerateMaskVectorKernel(const int* labelVec, const int targetLabel, const int numElements, float* maskVec);
+
+/*
+ * This is a wrapper function for applying unary function to every element in the vector. For currently supported unary functions, please refer to the definition of the enumeration UNARY_FUNC_NAME.
+ */
+void wrapperApplyUnaryFunctionKernel(float* vec, const int numElements, UNARY_FUNC_NAME unaryFuncName);
+
+/*
+ * This is a wrapper function for obtaining the maximum element along each row of a given matrix and its index. This is known to be a parallel reduction problem.
+ */
+void wrapperMatrixArgMaxRowKernel(const float* matrix, const int numRow, const int numCol, float* maxVal, int* maxIdx);
 
 #endif

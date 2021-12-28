@@ -74,3 +74,74 @@ void _naiveBayesMultinomialFitGPU(const float* X, const int* y, const int numSam
 
     CUBLAS_CALL( cublasDestroy(cublasHandle) );
 }
+
+void _naiveBayesMultinomialPredictGPU(const float* X, const float* classProbability, const float* wordProbability, const int numSamples, const int vocabularySize, const int numClasses, int* predictions) {
+    /*
+     * This function make predictions using the fitted Naive Bayes model.
+     * To make predictions, we simply need to calculate the posterior probability p(y|x), which can be expanded as:
+     * p(y|x) = p(x|y) * p(y) / p(x) \propto p(x|y) * p(y)
+     * p(y) is exactly what we have in classProbability, therefore the key is to compute p(x|y). Since we use multinomial event model, p(x|y) can be written as:
+     * p(x|y) = \prod_{i=0}^{|V| - 1} p(i|y)^{x_i}, where p(i|y) is what we have in wordProbability.
+     * It's not hard to see there invovles multiplication, which is difficult to implement in CUDA. However, we can apply the simple log trick and instead compute the log (p(x|y) * p(y)) = log p(x|y) + log p(y), where we further have:
+     * log p(x|y) = \sum_{i=1}^{|V|-1} (x_i * log p(i|y)). This can be implemented using a blas operation.
+     * 
+     * Specifically, this function takes the following steps:
+     * 1. Apply the logarithmic function to elements in classProbability and wordProbability. -> Our own kernels.
+     * 2. Perform the matrix multiplication between X and log(wordProbability). -> We can use cublas.
+     * 3. Add the result matrix from above to the classProbability vector (a broadcast). -> Our own kernels.
+     * 4. The result matrix is the posterior probability matrix, we then find the argmax for each sample, which is the predictions we made. -> Our own kernels.
+     * 
+     */
+
+    float one = 1.0, zero = 0.0;
+
+    // Malloc space on GPU
+    float* deviceX;
+    float* deviceClassProbability;
+    float* deviceWordProbability;
+    float* devicePostProbability;
+    int* devicePredictions;
+    float* deviceMaxPostProbability;
+
+    CUDA_CALL( cudaMalloc(&deviceX, sizeof(float) * numSamples * vocabularySize) );
+    CUDA_CALL( cudaMalloc(&deviceClassProbability, sizeof(float) * numClasses) );
+    CUDA_CALL( cudaMalloc(&deviceWordProbability, sizeof(float) * numClasses * vocabularySize) );
+    CUDA_CALL( cudaMalloc(&devicePostProbability, sizeof(float) * numSamples * numClasses) );
+    CUDA_CALL( cudaMalloc(&devicePredictions, sizeof(int) * numSamples) );
+    CUDA_CALL( cudaMalloc(&deviceMaxPostProbability, sizeof(float) * numSamples) );
+
+    CUDA_CALL( cudaMemcpy(deviceX, X, sizeof(float) * numSamples * vocabularySize, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpy(deviceClassProbability, classProbability, sizeof(float) * numClasses, cudaMemcpyHostToDevice) );
+    CUDA_CALL( cudaMemcpy(deviceWordProbability, wordProbability, sizeof(float) * numClasses * vocabularySize, cudaMemcpyHostToDevice) );
+
+    // Prepare for the cublas handle
+    cublasHandle_t cublasHandle;
+    CUBLAS_CALL( cublasCreate(&cublasHandle) );
+
+    // 1. Apply the log function to each elements in the class probabilit and word probabilit matrix
+    wrapperApplyUnaryFunctionKernel(deviceClassProbability, numClasses, LOG);
+    wrapperApplyUnaryFunctionKernel(deviceWordProbability, numClasses * vocabularySize, LOG);
+
+    // 2. The matrix multiplication between X and log(wordProbability)
+    CUBLAS_CALL( cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, numClasses, numSamples, vocabularySize, &one, deviceWordProbability, vocabularySize, deviceX, vocabularySize, &zero, devicePostProbability, numClasses) );
+
+    // 3. Add the class probability matrix
+    wrapperMatrixVectorAddition(devicePostProbability, numSamples, numClasses, deviceClassProbability, one, devicePostProbability);
+
+    // 4. Select the argmax
+    copyToHostAndDisplayFloat(devicePostProbability, numSamples, numClasses);
+    wrapperMatrixArgMaxRowKernel(devicePostProbability, numSamples, numClasses, deviceMaxPostProbability, devicePredictions);
+
+    // Copy the result back to host
+    CUDA_CALL( cudaMemcpy(predictions, devicePredictions, sizeof(int) * numSamples, cudaMemcpyDeviceToHost) );
+
+    // Free all resources
+    CUDA_CALL( cudaFree(deviceX) );
+    CUDA_CALL( cudaFree(deviceClassProbability) );
+    CUDA_CALL( cudaFree(deviceWordProbability) );
+    CUDA_CALL( cudaFree(devicePostProbability) );
+    CUDA_CALL( cudaFree(deviceMaxPostProbability) );
+    CUDA_CALL( cudaFree(devicePredictions) );
+
+    CUBLAS_CALL( cublasDestroy(cublasHandle) );
+}

@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <assert.h>
+#include <float.h>
 
 #include <helper/helper_CUDA.h>
 
@@ -158,6 +159,94 @@ void generateMaskVectorKernel(const int* labelVec, const int targetLabel, const 
     }
 }
 
+__global__
+void applyUnaryFunctionKernel(float* vec, const int numElements, UNARY_FUNC_NAME unaryFuncName) {
+    // Prepare for the function
+    UNARY_FUNC_P unaryFunc;
+    switch (unaryFuncName) {
+        case LOG: unaryFunc = log; break;
+        default: assert(false && "Unsupported Unary Function");
+    }
+
+    int idxSample = threadIdx.x;
+
+    while (idxSample < numElements) {
+        vec[idxSample] = unaryFunc(vec[idxSample]);
+
+        idxSample += gridDim.x * blockDim.x;
+    }
+}
+
+__global__
+void matrixArgMaxRowKernel(const float* matrix, const int numRow, const int numCol, float* maxVal, int* maxIdx) {
+    /*
+     * In this implementation, one block is responsible for finding the argmax of a single row.
+     * Also, to support cases when the number of rows exceeds the number of blocks, we also need to iterate until all rows have been processed.
+     */
+
+    /* For each block, the shared memory is split into three parts. Specifically, for the elements covered by this block, we store:
+     * 1. The index of these elements.          -> numThreadsInBlock * sizeof(int)
+     * 2. The actual value of these elements.   -> numThreadsInBlock * sizeof(float)
+     * 3. The current max value and its index.  -> 1 * sizeof(float) + 1 * sizeof(int)
+     */
+    extern __shared__ float sharedMem[];
+    int* sharedIndex = (int*)sharedMem;
+    float* sharedData = sharedMem + blockDim.x;
+    float* sharedCurrentMaxVal = sharedData + blockDim.x;
+    int* sharedCurrentMaxValIndex = (int*)sharedCurrentMaxVal + 1;
+
+    int rowIdx = blockIdx.x; // The block idx is the row idx
+    const int sharedMemIdx = threadIdx.x;
+
+    while (rowIdx < numRow) {
+        // Each loop corresponds to the reduction of a single row
+        // Initialize the current max value and max index
+        if (threadIdx.x == 0) {
+            *sharedCurrentMaxVal = -FLT_MAX;
+            *sharedCurrentMaxValIndex = -1;
+        }
+
+        const int colLoopCount = numCol % blockDim.x == 0 ? numCol / blockDim.x : numCol / blockDim.x + 1;
+        int colIdx = threadIdx.x;
+        for (int idxColLoop = 0; idxColLoop < colLoopCount; idxColLoop++) {
+            // This corresponds to a fragment of a row reduction
+            // First, load the index and the data into the shared memory
+            sharedIndex[sharedMemIdx] = colIdx;
+            sharedData[sharedMemIdx] = colIdx < numCol ? matrix[rowIdx * numCol + colIdx] : -FLT_MAX;
+            __syncthreads();
+
+            // Second, use a for loop to perform reduction
+            int range = blockDim.x;
+            for (int i = 0; i < (int)log2((float)blockDim.x); i++) {
+                range /= 2;
+                if (sharedMemIdx < range) {
+                    sharedIndex[sharedMemIdx] = sharedData[sharedMemIdx] < sharedData[sharedMemIdx + range] ? sharedIndex[sharedMemIdx + range] : sharedIndex[sharedMemIdx];
+                    sharedData[sharedMemIdx] = sharedData[sharedMemIdx] < sharedData[sharedMemIdx + range] ? sharedData[sharedMemIdx + range] : sharedData[sharedMemIdx];
+                }
+                __syncthreads();
+            }
+
+            // The first thread in this block is responsible for updating the temporary max value and index
+            if (threadIdx.x == 0) {
+                *sharedCurrentMaxValIndex = *sharedCurrentMaxVal < sharedData[sharedMemIdx] ? sharedIndex[sharedMemIdx] : *sharedCurrentMaxValIndex;
+                *sharedCurrentMaxVal = *sharedCurrentMaxVal < sharedData[sharedMemIdx] ? sharedData[sharedMemIdx] : *sharedCurrentMaxVal;
+            }
+            // No need to syncthreads here because the critical area is only accessible for the first thread
+
+            colIdx += blockDim.x;
+        }
+        // The first thread in this block is responsible for writting the final max val and index to the global memory
+        if (threadIdx.x == 0) {
+            maxIdx[rowIdx] = *sharedCurrentMaxValIndex;
+            maxVal[rowIdx] = *sharedCurrentMaxVal;
+        }
+        // No need to syncthreads here because sharedCurrentMaxValIndex is only accessible by the first thread, which is now writing to the global memory
+
+        rowIdx += gridDim.x;
+    }
+
+}
+
 void wrapperMatrixVectorAddition(const float* matrix, const int numRow, const int numCol, const float* vector, float scale, float* res) {
     // Kernel configuration
     const int BLOCKWIDTH = 1024;
@@ -225,4 +314,25 @@ void wrapperGenerateMaskVectorKernel(const int* labelVec, const int targetLabel,
     const int NUMBLOCK = min(65535, ((numElements) + BLOCKWIDTH - 1) / BLOCKWIDTH);
     // Launch the kernel
     generateMaskVectorKernel<<<NUMBLOCK, BLOCKWIDTH>>>(labelVec, targetLabel, numElements, maskVec);
+}
+
+void wrapperApplyUnaryFunctionKernel(float* vec, const int numElements, UNARY_FUNC_NAME unaryFuncName) {
+    // Kernel configuration
+    const int BLOCKWIDTH = 1024;
+    const int NUMBLOCK = min(65535, ((numElements) + BLOCKWIDTH - 1) / BLOCKWIDTH);
+    // Launch the kernel
+    applyUnaryFunctionKernel<<<NUMBLOCK, BLOCKWIDTH>>>(vec, numElements, unaryFuncName);
+}
+
+void wrapperMatrixArgMaxRowKernel(const float* matrix, const int numRow, const int numCol, float* maxVal, int* maxIdx) {
+    // Kernel configuration
+    const int BLOCKWIDTH = 1024;
+    const int NUMBLOCK = min(65535, numRow);
+    const int SHAREDMEMSIZE = sizeof(int) * BLOCKWIDTH + sizeof(float) * BLOCKWIDTH + sizeof(float) + sizeof(int);
+    // Check whether we have enough shared memory
+    if (SHAREDMEMSIZE > MAXSHAREDMEMBYTES) {
+        assert(false &* "No enough shared memory");
+    }
+    // Launch the kernel
+    matrixArgMaxRowKernel<<<NUMBLOCK, BLOCKWIDTH, SHAREDMEMSIZE>>>(matrix, numRow, numCol, maxVal, maxIdx);
 }
