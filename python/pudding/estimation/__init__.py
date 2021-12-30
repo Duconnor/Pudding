@@ -1,1 +1,1 @@
-from .kde import kde_score
+from .kde import KDE

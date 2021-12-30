@@ -3,7 +3,7 @@ import pytest
 
 from sklearn.neighbors import KernelDensity
 
-from pudding.estimation import kde_score
+from pudding.estimation import KDE
 
 @pytest.mark.parametrize('n_samples', [10, 1000, 4000, 5000, 100000])
 def test_gaussian_kde_random_data(n_samples):
@@ -24,7 +24,9 @@ def test_gaussian_kde_random_data(n_samples):
     sklearn_density = np.exp(sklearn_log_density)
     
     # Pudding's result
-    pudding_density = kde_score(X, kernel=kernel, bandwidth=bandwidth, samples=samples)
+    pudding_kde = KDE(kernel=kernel, bandwidth=bandwidth)
+    pudding_kde.fit(X)
+    pudding_density = pudding_kde.predict(samples)
     pudding_density = np.array(pudding_density)
 
     # Check

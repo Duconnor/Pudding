@@ -1,49 +1,81 @@
 from ..lib import _LIB, CONTIGUOUS_FLAG
+from ..base import _BaseModel
 import ctypes
 import numpy as np
 
-def kde_score(X, kernel, bandwidth, samples):
+class KDE(_BaseModel):
     '''
-    This function fits a kernel density estimation model on the given training data X. And then perform kde query using samples. The return value is the probability of each sample.
+    Kernel Density Estimation
 
-    Inputs:
-        - X: a list of training data, of shape (n_samples, n_features).
-        - kernel: a str, specify which kernel to use. Options include ['gaussian'].
-        - bandwidth: a float, the bandwidth to use.
-        - samples: a list of samples, of shape (n_test_samples, n_features).
+    Parameters
+    ----------
+    kernel: a str, specify which kernel to use. Options include ['gaussian']
 
-    Return: the probability of each sample in samples, of shape (n_test_samples,).
+    bandwidth: a float, the bandwidth to use
+
+    Method
+    ----------
+    fit(X, y=None, **kwargs): fit the model using the given data
+
+    predict(X, **Kwargs): predict the probability of each sample given in X
     '''
 
-    # Prepare the data and perform pre-condition check
-    valid_kernels = ['gaussian']
-    assert kernel in valid_kernels
-    assert bandwidth > 0.0
+    def __init__(self, kernel, bandwidth) -> None:
+        super().__init__()
+        self.kernel = kernel
+        self.bandwidth = bandwidth
+        self.__isfit = False
+    
+    def fit(self, X, y=None, **kwargs):
+        '''
+        This function fits a kernel density estimation model on the given training data X
 
-    np_X = np.array(X).astype(np.float32)
-    np_samples = np.array(samples).astype(np.float32)
+        Inputs:
+            - X: a list of training data, of shape (n_samples, n_features)
+            - y: ignored
+        '''
+        self.training_X = np.array(X).astype(np.float32)
+        self.__isfit = True
 
-    n_samples, n_features = np_X.shape
-    n_test_samples, _ = np_samples.shape
+    def predict(self, X, **kwargs):
+        '''
+        Perform the kde query on X
 
-    # Prepare for the return value
-    np_scores = np.empty((n_test_samples)).astype(np.float32)
+        Inputs:
+            - X: a list of samples, of shape (n_test_samples, n_features).
+        
+        Return: the probability of each sample in X, of shape (n_test_samples,).
+        '''
+        assert self.__isfit # Must fit before predicting anything
 
-    # Prepare the function being called
-    c_kde_score = _LIB.kdeScore
-    c_kde_score.restype = None
-    c_kde_score.argtypes = [
-        np.ctypeslib.ndpointer(ctypes.c_float, flags=CONTIGUOUS_FLAG),
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_char_p,
-        ctypes.c_float,
-        np.ctypeslib.ndpointer(ctypes.c_float, flags=CONTIGUOUS_FLAG),
-        ctypes.c_int,
-        np.ctypeslib.ndpointer(ctypes.c_float, flags=CONTIGUOUS_FLAG),
-    ]
+        # Prepare the data and perform pre-condition check
+        valid_kernels = ['gaussian']
+        assert self.kernel in valid_kernels
+        assert self.bandwidth > 0.0
 
-    # Call the function
-    c_kde_score(np_X, n_samples, n_features, kernel.encode(), bandwidth, np_samples, n_test_samples, np_scores)
+        np_X = np.array(X).astype(np.float32)
 
-    return np_scores.tolist()
+        n_samples, n_features = self.training_X.shape
+        n_test_samples, _ = np_X.shape
+
+        # Prepare for the return value
+        np_scores = np.empty((n_test_samples)).astype(np.float32)
+
+        # Prepare the function being called
+        c_kde_score = _LIB.kdeScore
+        c_kde_score.restype = None
+        c_kde_score.argtypes = [
+            np.ctypeslib.ndpointer(ctypes.c_float, flags=CONTIGUOUS_FLAG),
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_float,
+            np.ctypeslib.ndpointer(ctypes.c_float, flags=CONTIGUOUS_FLAG),
+            ctypes.c_int,
+            np.ctypeslib.ndpointer(ctypes.c_float, flags=CONTIGUOUS_FLAG),
+        ]
+
+        # Call the function
+        c_kde_score(self.training_X, n_samples, n_features, self.kernel.encode(), self.bandwidth, np_X, n_test_samples, np_scores)
+
+        return np_scores.tolist()

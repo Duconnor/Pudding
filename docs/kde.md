@@ -76,7 +76,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KernelDensity
 from scipy.stats import norm
 
-from pudding.estimation import kde_score
+from pudding.estimation import KDE
 
 N = 100
 np.random.seed(1)
@@ -89,7 +89,10 @@ true_dens = 0.3 * norm(0, 1).pdf(X_plot[:, 0]) + 0.7 * norm(5, 1).pdf(X_plot[:, 
 
 sklearn_kde = KernelDensity(kernel='gaussian', bandwidth=0.5).fit(X)
 sklearn_log_density = sklearn_kde.score_samples(X_plot)
-pudding_density = kde_score(X, kernel='gaussian', bandwidth=0.5, samples=X_plot)
+
+pudding_kde = KDE(kernel='gaussian', bandwidth=0.5)
+pudding_kde.fit(X)
+pudding_density = pudding_kde.predict(X_plot)
 
 fig, ax = plt.subplots(1, 2, sharey=True, figsize=(9, 4))
 fig.subplots_adjust(wspace=0)
