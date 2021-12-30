@@ -36,7 +36,16 @@ class NaiveBayesMultinomial(_NaiveBayes):
 
     Methods
     -------
-    fit(X, y=None, **kwargs)
+    fit(X, y=None, **kwargs): fit the Naive Bayes model using the training set.
+    
+    predict(X, **kwargs): make predictions using the fitted model.
+    '''
+
+    def __init__(self, n_classes, alpha=1.0):
+        super().__init__(n_classes=n_classes, alpha=alpha)
+
+    def fit(self, X, y=None, **kwargs):
+        '''
         Fit the Naive Bayes model using the training set.
 
         Params:
@@ -44,20 +53,7 @@ class NaiveBayesMultinomial(_NaiveBayes):
             -y: must not be None and is of shape (n_samples,), which is the labels for training samples. Must be in the range of [0, n_classes - 1]
         
         Return: None
-    
-    predict(X, **kwargs)
-        Make predictions using the fitted model.
-        
-        Params:
-            -X: of shape (n_test_samples, n_vocabulary) and each element is the count of words occuring.
-            
-        Return: the predicted label is returned, which is of shape (n_test_samples,)
-    '''
-
-    def __init__(self, n_classes, alpha=1.0):
-        super().__init__(n_classes=n_classes, alpha=alpha)
-
-    def fit(self, X, y=None, **kwargs):
+        '''
         assert y is not None # This is a supervised learning algorithm, so we need labels
 
         # Prepare the data
@@ -92,6 +88,14 @@ class NaiveBayesMultinomial(_NaiveBayes):
         self._isfit = True
 
     def predict(self, X, **kwargs):
+        '''
+        Make predictions using the fitted model.
+        
+        Params:
+            -X: of shape (n_test_samples, n_vocabulary) and each element is the count of words occuring.
+            
+        Return: the predicted label is returned, which is of shape (n_test_samples,)
+        '''
         assert self._isfit # The model must first be fitted
 
         # Prepare the data

@@ -2,4 +2,4 @@
 Clustering algorithms
 '''
 
-from .kmeans import kmeans
+from .kmeans import KMeans

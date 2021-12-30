@@ -8,7 +8,7 @@ from PIL import Image
 from time import time
 from sklearn.cluster import KMeans
 
-from pudding.clustering import kmeans
+import pudding
 
 n_colors = 64
 
@@ -31,7 +31,9 @@ print(f'Done in {time() - t0:0.3f}s.')
 
 print("Perform the KMeans clustering using Pudding on GPU...")
 t1 = time()
-centers, membership, _ = kmeans(image_array, n_clusters=n_colors, cuda_enabled=True)
+pudding_kmeans = pudding.clustering.KMeans(n_clusters=n_colors, cuda_enabled=True)
+pudding_kmeans.fit(image_array)
+centers, membership = pudding_kmeans.centers, pudding_kmeans.membership
 assert not np.isnan(centers).any()
 print(f"Done in {time() - t1:0.3f}s.")
 
