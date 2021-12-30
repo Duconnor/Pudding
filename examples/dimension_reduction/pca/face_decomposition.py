@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.datasets import fetch_olivetti_faces
 
-from pudding.dimension_reduction import pca
+from pudding.dimension_reduction import PCA
 
 # First, load the dataset and visualize the faces
 oliv = fetch_olivetti_faces(data_home='.')
@@ -21,7 +21,9 @@ plt.savefig('face_preview.jpg')
 
 # Project the original face dataset into a lower dimensional feature space
 # Let's say, from 4096 -> 64
-principal_components, principal_axes, _, reconstructed_X = pca(oliv.data, n_components=64)
+pca = PCA(n_components=64)
+pca.fit(oliv.data)
+principal_components, principal_axes, reconstructed_X = pca.principal_components, pca.principal_axes, pca.reconstructed_X
 
 # Visualize the top 9 principal axes
 fig = plt.figure(figsize=(6, 6))

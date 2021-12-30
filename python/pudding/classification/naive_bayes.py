@@ -12,7 +12,7 @@ class _NaiveBayes(_BaseModel):
         super().__init__()
         self.n_classes = n_classes
         self.alpha = alpha
-        self._isfit = False
+        self.__isfit = False
 
 class NaiveBayesMultinomial(_NaiveBayes):
     '''
@@ -85,7 +85,7 @@ class NaiveBayesMultinomial(_NaiveBayes):
         # Set the corresponding attributes
         self.class_prob = np_class_prob
         self.word_prob = np_word_prob
-        self._isfit = True
+        self.__isfit = True
 
     def predict(self, X, **kwargs):
         '''
@@ -96,7 +96,7 @@ class NaiveBayesMultinomial(_NaiveBayes):
             
         Return: the predicted label is returned, which is of shape (n_test_samples,)
         '''
-        assert self._isfit # The model must first be fitted
+        assert self.__isfit # The model must first be fitted
 
         # Prepare the data
         np_X = np.array(X).astype(np.float32)

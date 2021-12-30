@@ -1,10 +1,11 @@
+import pudding
 import pytest
 import numpy as np
 
 from sklearn.datasets import load_iris
 from sklearn.decomposition import PCA
 
-from pudding.dimension_reduction import pca
+import pudding
 
 iris = load_iris()
 
@@ -22,7 +23,9 @@ def test_pca_reduction_toy_data():
     expected_reconstructed_X = np.array(X)
     
     # Launch
-    principal_components, principal_axes, variances, reconstructed_X = pca(X, n_components=n_components)
+    pca = pudding.dimension_reduction.PCA(n_components=n_components)
+    pca.fit(X)
+    principal_components, principal_axes, variances, reconstructed_X = pca.principal_components, pca.principal_axes, pca.variance, pca.reconstructed_X
 
     # Convert to numpy array
     principal_components = np.array(principal_components)
@@ -59,7 +62,9 @@ def test_pca_reduction_with_sklearn(n_components):
     sklearn_recontructed_X = sklearn_pca.inverse_transform(X_r)
 
     # Pudding's result
-    principal_components, principal_axes, variances, reconstructed_X = pca(X, n_components=n_components)
+    pudding_pca = pudding.dimension_reduction.PCA(n_components=n_components)
+    pudding_pca.fit(X)
+    principal_components, principal_axes, variances, reconstructed_X = pudding_pca.principal_components, pudding_pca.principal_axes, pudding_pca.variance, pudding_pca.reconstructed_X
 
     # Convert to numpy res
     principal_components = np.array(principal_components)
