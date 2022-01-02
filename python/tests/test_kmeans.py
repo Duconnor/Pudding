@@ -16,17 +16,17 @@ def testKmeansToyData():
     expected_iterations = 2
 
     pudding_kmeans = pudding.clustering.KMeans(n_clusters=len(initial_centers), cuda_enabled=False)
-    pudding_kmeans.fit(X, initial_centers=initial_centers)
+    pudding_kmeans.fit(np.array(X), initial_centers=initial_centers)
 
-    assert pudding_kmeans.membership == expected_membership
+    assert pudding_kmeans.membership.tolist() == expected_membership
     for center, expected_center in zip(pudding_kmeans.centers, expected_centers):
         assert center == pytest.approx(expected_center)
     assert expected_iterations == pudding_kmeans.n_iter
 
     pudding_kmeans = pudding.clustering.KMeans(n_clusters=len(initial_centers), cuda_enabled=True)
-    pudding_kmeans.fit(X, initial_centers=initial_centers)
+    pudding_kmeans.fit(np.array(X), initial_centers=initial_centers)
 
-    assert pudding_kmeans.membership == expected_membership
+    assert pudding_kmeans.membership.tolist() == expected_membership
     for center, expected_center in zip(pudding_kmeans.centers, expected_centers):
         assert center == pytest.approx(expected_center)
     assert expected_iterations == pudding_kmeans.n_iter
@@ -55,7 +55,7 @@ def testKmeansCPUGPU():
     our_gpu_centers, our_gpu_membership, our_gpu_n_iter = gpu_kmeans.centers, gpu_kmeans.membership, gpu_kmeans.n_iter
 
     # Assertions
-    assert our_cpu_membership == our_gpu_membership
+    assert our_cpu_membership.tolist() == our_gpu_membership.tolist()
 
     for our_cpu_center, our_gpu_center in zip(our_cpu_centers, our_gpu_centers):
         assert our_cpu_center == pytest.approx(our_gpu_center)
@@ -101,19 +101,19 @@ def testKmeansEmptyCluster():
     expected_iterations = 2
 
     cpu_kmeans = pudding.clustering.KMeans(n_clusters=len(initial_centers), cuda_enabled=False)
-    cpu_kmeans.fit(X, initial_centers=initial_centers)
+    cpu_kmeans.fit(np.array(X), initial_centers=initial_centers)
     centers, membership, n_iterations = cpu_kmeans.centers, cpu_kmeans.membership, cpu_kmeans.n_iter
 
-    assert membership == expected_membership
+    assert membership.tolist() == expected_membership
     for center, expected_center in zip(centers, expected_centers):
         assert center == pytest.approx(expected_center)
     assert expected_iterations == n_iterations
 
     gpu_kmeans = pudding.clustering.KMeans(n_clusters=len(initial_centers), cuda_enabled=True)
-    gpu_kmeans.fit(X, initial_centers=initial_centers)
+    gpu_kmeans.fit(np.array(X), initial_centers=initial_centers)
     centers, membership, n_iterations = gpu_kmeans.centers, gpu_kmeans.membership, gpu_kmeans.n_iter
 
-    assert membership == expected_membership
+    assert membership.tolist() == expected_membership
     for center, expected_center in zip(centers, expected_centers):
         assert center == pytest.approx(expected_center)
     assert expected_iterations == n_iterations

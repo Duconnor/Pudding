@@ -24,7 +24,7 @@ def test_pca_reduction_toy_data():
     
     # Launch
     pca = pudding.dimension_reduction.PCA(n_components=n_components)
-    pca.fit(X)
+    pca.fit(np.array(X))
     principal_components, principal_axes, variances, reconstructed_X = pca.principal_components, pca.principal_axes, pca.variance, pca.reconstructed_X
 
     # Convert to numpy array
