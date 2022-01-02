@@ -1,21 +1,26 @@
-# Pudding
+---
+layout: default
+title: Pudding 🍮
+nav_order: 1
+---
+# Pudding 🍮
 
 Welcome to the official site for the project Pudding!
 
 Pudding enables you to run various machine learning algorithms on Nvidia's GPU. It is written in C/C++ and CUDA. To make it easier for one to use, it also comes with a Python binding.
 
-# Installation
+## Installation
 
 *Currently Pudding has only been tested on Linux.*
 
-## Dependencies
+### Dependencies
 
 Compiling the Pudding shared libarary requires:
 * CMake >= 3.18
 * gcc >= 5.4.0
 * CUDA 10.1
 
-## Installation Steps
+### Installation Steps
 
 First you need to compile the shared libaray:
 
@@ -46,23 +51,3 @@ You can run tests if you want (again, assume you are in the root directory and b
 ```shell
 pytest python/tests
 ```
-
-## Example Usage
-
-You can find examples of every supported algorithm in ```examples/```. Note you may need to install additional Python packages, depending on the example you choose to run.
-
-# Current Supported Algorithms
-
-Since Pudding is my personal project, I am trying my best to add more supported algorithms. Currently, the supported algorithms are listed as follows.
-
-## Clustering
-
-* [KMeans](kmeans.md).
-
-## Dimension Reduction
-
-* [Principal Component Analysis](pca.md).
-
-## Density Estimation
-
-* [Kernel Density Estimation](kde.md).

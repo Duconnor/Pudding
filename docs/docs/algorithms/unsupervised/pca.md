@@ -1,5 +1,10 @@
-[Go Back](index.md)
-
+---
+layout: default
+title: Principal Component Analysis
+parent: Unsupervised Learning Algorithms
+grand_parent: Current Supported Algorithms
+nav_order: 2
+---
 *From my perspective, PCA is not well explained in scikit-learn's official [User Guide](https://scikit-learn.org/stable/modules/decomposition.html#pca) and I found many interesting resources[^1][^2][^3] on the internet when I implemented this algorithm myself. Therefore I'll try to give a brief introduction of PCA here, hope this can help you :).*
 
 # Principal Component Analysis (PCA)
@@ -26,7 +31,7 @@ The above desciption only provides you with some basic intuition behind PCA. One
 From the perspective of variance maximization, a good feature is the one that strongly differs across all data points[^1]. This is equivalent to finding a hyperplane on the original feature space such that when we project all data points onto this hyperplane, the result points have maximum variances. For example, in the figure[^4] below, the length of the red line represents the variance when projecting data onto this line. Projection that has higher variance means more information is preserved.
 
 <div align=center>
-<img src="assets/pca_variance.png">
+<img src="../../../assets/pca_variance.png">
 <center style="font-size:14px;color:#C0C0C0;">Variance of projected values.</center> 
 </div>
 
@@ -35,7 +40,7 @@ From the perspective of variance maximization, a good feature is the one that st
 From the perspective of minimizing the reconstruction error, a good feature is the one that allows us to reconstruct the original feature representation as precise as possible. This is equivalent to finding a hyperplane in the original feature space, such that the Euclidean distance between the original data points and the projected points are minimized. The gif[^1] below gives a nice visualization about this, where the length of lines between the red dots (the new representation) and the blue dots (the original representation) denotes the reconstruction error.
 
 <div align=center>
-<img src="assets/pca_reconstruction_error.gif">
+<img src="../../../assets/pca_reconstruction_error.gif">
 <center style="font-size:14px;color:#C0C0C0;">Recontruction error.</center> 
 </div>
 
@@ -163,21 +168,21 @@ fig.savefig('reconstructed_images.jpg')
 The original face images are shown below.
 
 <div align=center>
-<img src="assets/face_preview.jpg">
+<img src="../../../assets/face_preview.jpg">
 <center style="font-size:14px;color:#C0C0C0;">The original face images.</center> 
 </div>
 
 The top 9 eigenfaces we extract are shown below.
 
 <div align=center>
-<img src="assets/principal_axes.jpg">
+<img src="../../../assets/principal_axes.jpg">
 <center style="font-size:14px;color:#C0C0C0;">The top 9 eigenfaces.</center> 
 </div>
 
 Using the lower dimensional representation, we can reconstruct the original images.
 
 <div align=center>
-<img src="assets/reconstructed_images.jpg">
+<img src="../../../assets/reconstructed_images.jpg">
 <center style="font-size:14px;color:#C0C0C0;">The reconstructed face images.</center> 
 </div>
 

@@ -1,5 +1,10 @@
-[Go Back](index.md)
-
+---
+layout: default
+title: Kernel Density Estimation
+parent: Unsupervised Learning Algorithms
+grand_parent: Current Supported Algorithms
+nav_order: 1
+---
 *Many contents below are adopted from Wu's excellent textbook about Pattern Recognition[^1].*
 
 # Kernel Density Estimation (KDE)
@@ -108,7 +113,7 @@ plt.savefig('density_estimation.jpg')
 We compare the result of Pudding with Scikit-learn's implementation. As expected, they are the same.
 
 <div align=center>
-<img src="assets/density_estimation.jpg">
+<img src="../../../assets/density_estimation.jpg">
 <center style="font-size:14px;color:#C0C0C0;">Density estimation result of Pudding and Scikit-learn.</center> 
 </div>
 

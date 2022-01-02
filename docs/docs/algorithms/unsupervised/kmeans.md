@@ -1,5 +1,10 @@
-[Go Back](index.md)
-
+---
+layout: default
+title: KMeans Clustering
+parent: Unsupervised Learning Algorithms
+grand_parent: Current Supported Algorithms
+nav_order: 1
+---
 # KMeans Clustering
 
 KMeans is a simple and widely used clustering algorithm. Generally speaking, it tries to cluster data by minimizing the within-cluster sum-of-squares error. For more information about this algorithm, one can refer to this [site](https://scikit-learn.org/stable/modules/clustering.html#k-means).
@@ -21,7 +26,7 @@ Specifically, we randonly sample 100,000 points in a 3D space using the ```make_
 As we can see, the GPU version achieves a significant speedup compare to the naive CPU version. And when compared to a fully optimized CPU version like the implementation in scikit-learn, the GPU version is still much faster.
 
 <div align=center>
-<img src="assets/kmeans_benchmark_res.jpg">
+<img src="../../../assets/kmeans_benchmark_res.jpg">
 <center style="font-size:14px;color:#C0C0C0;">Benchmark result.</center> 
 </div>
 
@@ -88,17 +93,17 @@ quantized_image.save('quantized_sklearn.jpg')
 ```
 
 <div align=center>
-<img src="assets/image.jpg">
+<img src="../../../assets/image.jpg">
 <center style="font-size:14px;color:#C0C0C0;">The original image.</center> 
 </div>
 
 <div align=center>
-<img src="assets/quantized_sklearn.jpg">
+<img src="../../../assets/quantized_sklearn.jpg">
 <center style="font-size:14px;color:#C0C0C0;">Scikit-learn result.</center>
 </div> 
 
 <div align=center>
-<img src="assets/quantized_pudding.jpg">
+<img src="../../../assets/quantized_pudding.jpg">
 <center style="font-size:14px;color:#C0C0C0;">Pudding result.</center>
 </div> 
 
