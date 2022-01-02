@@ -1,4 +1,4 @@
-theme: just-the-docs
+remote_theme: pmarsceill/just-the-docs
 
 # Enable or disable the site search
 # Supports true (default) or false
@@ -42,4 +42,3 @@ back_to_top_text: "Back to top"
 
 footer_content: "Copyright &copy; 2021-2022 Yingxiao Du. Distributed by an <a href=\"https://github.com/Duconnor/Pudding/blob/master/LICENSE\">MIT license.</a>"
 
-remote_theme: pmarsceill/just-the-docs
