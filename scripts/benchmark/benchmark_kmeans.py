@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.datasets import make_blobs
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-from pudding.clustering import kmeans
+import pudding
 
 def benchmarking_kmeans():
     '''
@@ -24,7 +24,8 @@ def benchmarking_kmeans():
 
         # Our implementation GPU
         t_gpu_start = time.time()
-        _, membership, _ = kmeans(X, n_clusters=n_clusters, initial_centers=init_center, cuda_enabled=True, rand_seed=seed)
+        pudding_kmeans = pudding.clustering.KMeans(n_clusters=n_clusters, cuda_enabled=True)
+        pudding_kmeans.fit(X, initial_centers=init_center)
         t_gpu_end = time.time()
         gpu_ellapse = t_gpu_end - t_gpu_start
         times['Pudding'].append(gpu_ellapse)

@@ -8,7 +8,7 @@ from collections import defaultdict
 from time import time
 
 from sklearn.neighbors import KernelDensity
-from pudding.estimation import kde_score
+from pudding.estimation import KDE
 
 def kde_sklearn(x, x_grid, bandwidth=0.2, **kwargs):
     '''Kernel Density Estimation with Scikit-learn'''
@@ -24,7 +24,9 @@ def kde_pudding(x, x_grid, bandwidth=0.2, **kwargs):
         x = np.reshape(x, (-1, 1))
     if len(x_grid.shape) == 1:
         x_grid = np.reshape(x, (-1, 1))
-    return kde_score(x, kernel='gaussian', bandwidth=bandwidth, samples=x_grid)
+    kde_pudding = KDE(kernel='gaussian', bandwidth=bandwidth)
+    kde_pudding.fit(x)
+    return kde_pudding.predict(x_grid)
 
 kde_funcnames = ['Scikit-learn', 'Pudding']
 kde_funcs = [kde_sklearn, kde_pudding]

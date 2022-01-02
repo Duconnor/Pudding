@@ -11,19 +11,19 @@ KMeans is a simple and widely used clustering algorithm. Generally speaking, it 
 
 # Benchmark Result
 
-The GPU version of KMeans is benchmarked with respect to a naive CPU version implemented by me and a fully optimized CPU version implemented in scikit learn. You can perform the benchmark simply by running the Python script ```scripts/benchmark_kmeans.py```.
+The GPU version of KMeans is benchmarked with respect to the fully optimized CPU version implemented in Scikit learn. You can perform the benchmark simply by running the Python script ```scripts/benchmark/benchmark_kmeans.py```.
 
-Specifically, we randonly sample 100,000 points in a 3D space using the ```make_blobs``` function provided in the ```sklearn.datasets``` package. We choose a series of different cluster numbers varying from 8 to 128. The results are summarized in the following table:
+Specifically, I randonly sample points in a 3D space using the ```make_blobs``` function provided in the ```sklearn.datasets``` package. The number of samples ranges from 1000 to 100000 while the number of clusters formed is fixed to 128. The results are summarized in the following table:
 
-|Number of Clusters|Naive CPU Run Time (sec)|Sci-kit Run Time (sec)|GPU Run Time (sec)|Naive CPU Run Time / GPU Run Time|
-|:-:|:-:|:-:|:-:|:-:|
-|8|1.158|0.168|0.045|25.46x|
-|16|2.989|0.323|0.123|24.36x|
-|32|13.800|0.811|0.514|26.83x|
-|64|21.721|1.651|0.793|27.39x|
-|128|55.437|3.124|2.157|25.70x|
+|Number of Samples|Sci-kit Run Time (sec)|GPU Run Time (sec)|Speedup|
+|:-:|:-:|:-:|:-:|
+|1000|0.023|0.121|0.188x|
+|10000|0.264|0.303|0.872x|
+|30000|0.807|0.361|2.237x|
+|50000|3.576|1.868|1.915x|
+|100000|3.956|1.853|2.135x|
 
-As we can see, the GPU version achieves a significant speedup compare to the naive CPU version. And when compared to a fully optimized CPU version like the implementation in scikit-learn, the GPU version is still much faster.
+As we can see, compared to a fully optimized CPU version like the implementation in scikit-learn, the GPU version is still 2 times faster as the dataset gets larger.
 
 <div align=center>
 <img src="../../../assets/kmeans_benchmark_res.jpg">

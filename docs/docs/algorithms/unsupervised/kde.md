@@ -64,6 +64,13 @@ To avoid potential flaws in usage, there are a few important things to note here
 
 The implementation of KDE in Pudding is compared with Scikit-learn's fully optmized version in order to quantify the speed up. You can reproduce the result by simply running the scripts ```scripts/benchmark/benchmark_kde.py```.
 
+<div align=center>
+<img src="../../../assets/kde_benchmark_num_points.jpg">
+<center style="font-size:14px;color:#C0C0C0;">Benchmark result.</center> 
+</div>
+
+As we can see, Pudding's implementation is much faster than Scikit-learn's.
+
 # One Application: Density Estimation
 
 This application is meant to demonstrate the basic usage of KDE. Specifically, we use it to estimate the underlying probability distribution given a finite set of i.i.d. samples. The code related to this application can be found in ```examples/estimation/kde/density_estimation```. Specifically, we generate 100 samples from a mixture of two Gaussian distributions. These samples are used to estimate the true probability, which is then visualized by generating a grid of evenly spaced query points.

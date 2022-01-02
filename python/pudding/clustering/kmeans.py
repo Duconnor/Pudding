@@ -51,7 +51,7 @@ class KMeans(_BaseModel):
         Perform kmeans clustering on the given data
 
         Inputs:
-            - X: the input data, of shape (n_samples, n_features)
+            - X: numpy array, the input data, of shape (n_samples, n_features)
             - y: ignored, KMeans clustering is an unsupervised learning algorithm
             - initial_centers: optional, if None, the initial centers will be selected as several randomly sampled data points
 
@@ -69,7 +69,7 @@ class KMeans(_BaseModel):
             np.random.seed(self.rand_seed)
 
         # Prepare the data
-        np_X = np.array(X).astype(np.float32)
+        np_X = X.astype(np.float32)
         n_samples, n_features = np_X.shape
 
         # Prepare the initial centers
@@ -105,8 +105,8 @@ class KMeans(_BaseModel):
         c_kmeans(np_X, np_initial_centers, n_samples, n_features, self.n_clusters, self.max_iter, self.tol, self.cuda_enabled, np_centers, np_membership, ctypes.byref(c_n_iter))
         n_iter = c_n_iter.value
 
-        self.centers = np_centers.tolist()
-        self.membership = np_membership.tolist()
+        self.centers = np_centers
+        self.membership = np_membership
         self.n_iter = n_iter
 
     def predict(self, X, **kwargs):

@@ -49,16 +49,16 @@ class NaiveBayesMultinomial(_NaiveBayes):
         Fit the Naive Bayes model using the training set.
 
         Params:
-            -X: of shape (n_samples, n_vocabulary), and each elements is the count of words occuring.
-            -y: must not be None and is of shape (n_samples,), which is the labels for training samples. Must be in the range of [0, n_classes - 1]
+            -X: numpy array, of shape (n_samples, n_vocabulary), and each elements is the count of words occuring.
+            -y: numpy array, must not be None and is of shape (n_samples,), which is the labels for training samples. Must be in the range of [0, n_classes - 1]
         
         Return: None
         '''
         assert y is not None # This is a supervised learning algorithm, so we need labels
 
         # Prepare the data
-        np_X = np.array(X).astype(np.float32)
-        np_y = np.array(y).astype(np.int32)
+        np_X = X.astype(np.float32)
+        np_y = y.astype(np.int32)
         n_samples, self.n_vocabulary = np_X.shape
 
         # Prepare for the return value
@@ -92,14 +92,14 @@ class NaiveBayesMultinomial(_NaiveBayes):
         Make predictions using the fitted model.
         
         Params:
-            -X: of shape (n_test_samples, n_vocabulary) and each element is the count of words occuring.
+            -X: numpy array, of shape (n_test_samples, n_vocabulary) and each element is the count of words occuring.
             
         Return: the predicted label is returned, which is of shape (n_test_samples,)
         '''
         assert self.__isfit # The model must first be fitted
 
         # Prepare the data
-        np_X = np.array(X).astype(np.float32)
+        np_X = X.astype(np.float32)
         n_test_samples, _ = np_X.shape
 
         # Prepare the return value
@@ -122,4 +122,4 @@ class NaiveBayesMultinomial(_NaiveBayes):
         c_naive_bayes_multinomial_predict(np_X, self.class_prob, self.word_prob, n_test_samples, self.n_vocabulary, self.n_classes, np_prediction)
 
         # Return the value
-        return np_prediction.tolist()
+        return np_prediction

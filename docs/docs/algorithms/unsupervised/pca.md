@@ -189,7 +189,10 @@ Using the lower dimensional representation, we can reconstruct the original imag
 As we can see, the reconstruction result looks pretty well.
 
 # References
-[^1]: [amoeba's answer to the question "Making sense of principal component analysis, eigenvectors & eigenvalues" on Cross Validated.](https://stats.stackexchange.com/questions/2691/making-sense-of-principal-component-analysis-eigenvectors-eigenvalues)  
-[^2]: [amoeba's answer to the question "PCA objective function: what is the connection between maximizing variance and minimizing error?" on Cross Validated.](https://stats.stackexchange.com/questions/32174/pca-objective-function-what-is-the-connection-between-maximizing-variance-and-m/136072#136072)  
-[^3]: [amoeba's answer to the question "What is an intuitive explanation for how PCA turns from a geometric problem (with distances) to a linear algebra problem (with eigenvectors)?" on Cross Validated.](https://stats.stackexchange.com/questions/217995/what-is-an-intuitive-explanation-for-how-pca-turns-from-a-geometric-problem-wit)  
+[^1]: amoeba (https://stats.stackexchange.com/users/28666/amoeba), Making sense of principal component analysis, eigenvectors & eigenvalues, URL (version: 2021-12-03): https://stats.stackexchange.com/q/140579
+
+[^2]: amoeba (https://stats.stackexchange.com/users/28666/amoeba), PCA objective function: what is the connection between maximizing variance and minimizing error?, URL (version: 2015-02-03): https://stats.stackexchange.com/q/136072
+
+[^3]: amoeba (https://stats.stackexchange.com/users/28666/amoeba), What is an intuitive explanation for how PCA turns from a geometric problem (with distances) to a linear algebra problem (with eigenvectors)?, URL (version: 2018-12-09): https://stats.stackexchange.com/q/219344
+
 [^4]: Wu, Jianxin. Essentials of Pattern Recognition: An Accessible Approach. Cambridge University Press, 2020.

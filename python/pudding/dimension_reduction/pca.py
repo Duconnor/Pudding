@@ -41,13 +41,13 @@ class PCA(_BaseModel):
         Note that, this function also performs reconstruction using the obtained principal components.
 
         Inputs:
-            - X: input data, be of shape (n_samples, n_features)
+            - X: numpy array, input data, be of shape (n_samples, n_features)
             - y: will be ignored
             - n_components: can be either a int, a float or None. If it is a int, must be in range (0, min(n_samples, n_features)], and n_components principal components (scores) will be kept. If it is a float, it represents the expected variance ratio, so must be in range (0, 1), and the number of components to keep will be determined automatically so that the expected variance ratio. If it is set to None, all components will be kept.
         '''
 
         # Prepare the data and perform pre-condition check
-        np_X = np.array(X).astype(np.float32)
+        np_X = X.astype(np.float32)
         n_samples, n_features = np_X.shape
         variance_percentage = 0.0
 
@@ -93,10 +93,10 @@ class PCA(_BaseModel):
         np_principal_axes = np_principal_axes[:n_components_chosen * n_features].reshape(n_components_chosen, n_features)
         np_variance = np_variance[:n_components_chosen]
 
-        self.principal_components = np_principal_components.tolist()
-        self.principal_axes = np_principal_axes.tolist()
-        self.variance = np_variance.tolist()
-        self.reconstructed_X = np_reconstructed_X.tolist()
+        self.principal_components = np_principal_components
+        self.principal_axes = np_principal_axes
+        self.variance = np_variance
+        self.reconstructed_X = np_reconstructed_X
     
     def predict(self, X, **kwargs):
         '''

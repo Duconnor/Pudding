@@ -31,10 +31,10 @@ class KDE(_BaseModel):
         This function fits a kernel density estimation model on the given training data X
 
         Inputs:
-            - X: a list of training data, of shape (n_samples, n_features)
+            - X: numpy array, the training data, of shape (n_samples, n_features)
             - y: ignored
         '''
-        self.training_X = np.array(X).astype(np.float32)
+        self.training_X = X.astype(np.float32)
         self.__isfit = True
 
     def predict(self, X, **kwargs):
@@ -42,7 +42,7 @@ class KDE(_BaseModel):
         Perform the kde query on X
 
         Inputs:
-            - X: a list of samples, of shape (n_test_samples, n_features).
+            - X: numpy array, the samples, of shape (n_test_samples, n_features).
         
         Return: the probability of each sample in X, of shape (n_test_samples,).
         '''
@@ -53,7 +53,7 @@ class KDE(_BaseModel):
         assert self.kernel in valid_kernels
         assert self.bandwidth > 0.0
 
-        np_X = np.array(X).astype(np.float32)
+        np_X = X.astype(np.float32)
 
         n_samples, n_features = self.training_X.shape
         n_test_samples, _ = np_X.shape
@@ -78,4 +78,4 @@ class KDE(_BaseModel):
         # Call the function
         c_kde_score(self.training_X, n_samples, n_features, self.kernel.encode(), self.bandwidth, np_X, n_test_samples, np_scores)
 
-        return np_scores.tolist()
+        return np_scores
