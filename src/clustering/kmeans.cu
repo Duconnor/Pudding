@@ -151,7 +151,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     float* deviceDist;             // Pair-wise distance of X and centers, of shape (numSamples, numCenters)
     float* deviceDummyArgMaxRow;   // A dummy vector storing the return value of wrapperMatrixArgMaxRowKernel() when determining the membership
     int* deviceMembership;
-	float* deviceMaskVec;          // Mask vector, used for updating centers
+    float* deviceMaskVec;          // Mask vector, used for updating centers
     float* deviceOldCenters;
     int* deviceSamplesCount;
 
@@ -160,7 +160,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     CUDA_CALL( cudaMalloc(&deviceDist, sizeof(float) * numSamples * numCenters) );
     CUDA_CALL( cudaMalloc(&deviceDummyArgMaxRow, sizeof(float) * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceMembership, sizeof(int) * numSamples) );
-	CUDA_CALL( cudaMalloc(&deviceMaskVec, sizeof(int) * numSamples) );
+    CUDA_CALL( cudaMalloc(&deviceMaskVec, sizeof(int) * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceOldCenters, sizeof(float) * numCenters * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceSamplesCount, sizeof(int)) );
     CUDA_CALL( cudaMemcpy(deviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
@@ -174,7 +174,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     CUBLAS_CALL( cublasCreate(&cublasHandle) );
     // These are useful when calling cublas functions
     float one = 1.0, negOne = -1.0;
-	float zero{float{0.0}};
+    float zero{float{0.0}};
 
     // Transpose deviceX, deviceCenters here to enable coalesced memory access in the kernel
     transposeMatrix(deviceX, numSamples, numFeatures);
@@ -182,7 +182,7 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
 
     while (!endFlag) {        
         // Determine the membership of each sample
-		wrapperComputePairwiseEuclideanDistanceKerenl(deviceX, deviceCenters, numSamples, numCenters, numFeatures, deviceDist);
+        wrapperComputePairwiseEuclideanDistanceKerenl(deviceX, deviceCenters, numSamples, numCenters, numFeatures, deviceDist);
         // Determine the membership of each sample requires us to select the argmin along each row
         // Since we already have a kernel that selects the argmax along each row, we try to reuse that instead of implementing a new one
         // Therefore, we multiply each element by -1 to make it negative
@@ -193,19 +193,19 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
         CUDA_CALL( cudaMemcpy(deviceOldCenters, deviceCenters, sizeof(float) * numCenters * numFeatures, cudaMemcpyDeviceToDevice) );
 
         // Update the center estimation
-		for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
-			// We use cublas functions + a mask vector to perform update
-			wrapperGenerateMaskVectorKernel(deviceMembership, idxCenter, numSamples, deviceMaskVec);
-			float numSamplesThisClass{0.0};
-			CUBLAS_CALL( cublasSasum(cublasHandle, numSamples, deviceMaskVec, one, &numSamplesThisClass) );
-			if (numSamplesThisClass == 0.0) {
-				// Empty cluster, keep it unchanged
-				// Do nothing
-			} else {
-				float denominator{float{1.0} / numSamplesThisClass};
-				CUBLAS_CALL( cublasSgemv(cublasHandle, CUBLAS_OP_T, numSamples, numFeatures, &denominator, deviceX, numSamples, deviceMaskVec, one, &zero, deviceCenters + idxCenter, numCenters) );
-			}
-		}
+        for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
+            // We use cublas functions + a mask vector to perform update
+            wrapperGenerateMaskVectorKernel(deviceMembership, idxCenter, numSamples, deviceMaskVec);
+            float numSamplesThisClass{0.0};
+            CUBLAS_CALL( cublasSasum(cublasHandle, numSamples, deviceMaskVec, one, &numSamplesThisClass) );
+            if (numSamplesThisClass == 0.0) {
+                // Empty cluster, keep it unchanged
+                // Do nothing
+            } else {
+                float denominator{float{1.0} / numSamplesThisClass};
+                CUBLAS_CALL( cublasSgemv(cublasHandle, CUBLAS_OP_T, numSamples, numFeatures, &denominator, deviceX, numSamples, deviceMaskVec, one, &zero, deviceCenters + idxCenter, numCenters) );
+            }
+        }
 
         // Test for coverage
         iterationCount++;
