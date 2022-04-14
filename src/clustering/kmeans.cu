@@ -148,13 +148,19 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     // Malloc space on GPU
     float* deviceX;
     float* deviceCenters;
+    float* deviceDist;             // Pair-wise distance of X and centers, of shape (numSamples, numCenters)
+    float* deviceDummyArgMaxRow;   // A dummy vector storing the return value of wrapperMatrixArgMaxRowKernel() when determining the membership
     int* deviceMembership;
+	float* deviceMaskVec;          // Mask vector, used for updating centers
     float* deviceOldCenters;
     int* deviceSamplesCount;
 
     CUDA_CALL( cudaMalloc(&deviceX, sizeof(float) * numSamples * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceCenters, sizeof(float) * numCenters * numFeatures) );
+    CUDA_CALL( cudaMalloc(&deviceDist, sizeof(float) * numSamples * numCenters) );
+    CUDA_CALL( cudaMalloc(&deviceDummyArgMaxRow, sizeof(float) * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceMembership, sizeof(int) * numSamples) );
+	CUDA_CALL( cudaMalloc(&deviceMaskVec, sizeof(int) * numSamples) );
     CUDA_CALL( cudaMalloc(&deviceOldCenters, sizeof(float) * numCenters * numFeatures) );
     CUDA_CALL( cudaMalloc(&deviceSamplesCount, sizeof(int)) );
     CUDA_CALL( cudaMemcpy(deviceX, X, sizeof(float) * numSamples * numFeatures, cudaMemcpyHostToDevice) );
@@ -163,14 +169,12 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
     // Malloc space on CPU
     int* samplesCount = (int*)malloc(sizeof(int));
 
-    // Determine the block width
-    const int BLOCKWIDTH = 1024;
-
     // Initialize the cublas handle
     cublasHandle_t cublasHandle;
     CUBLAS_CALL( cublasCreate(&cublasHandle) );
     // These are useful when calling cublas functions
     float one = 1.0, negOne = -1.0;
+	float zero{float{0.0}};
 
     // Transpose deviceX, deviceCenters here to enable coalesced memory access in the kernel
     transposeMatrix(deviceX, numSamples, numFeatures);
@@ -178,36 +182,30 @@ void _kmeansGPU(const float* X, const float* initCenters, const int numSamples, 
 
     while (!endFlag) {        
         // Determine the membership of each sample
-        int numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
-        int numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + sizeof(float) * numCenters * numFeatures;
-        if (numBytesSharedMemory > MAXSHAREDMEMBYTES) {
-            assert(false && "No enough shared memory");
-        }
-        determineMembershipKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceCenters, deviceMembership, numSamples, numFeatures, numCenters);;  
+		wrapperComputePairwiseEuclideanDistanceKerenl(deviceX, deviceCenters, numSamples, numCenters, numFeatures, deviceDist);
+        // Determine the membership of each sample requires us to select the argmin along each row
+        // Since we already have a kernel that selects the argmax along each row, we try to reuse that instead of implementing a new one
+        // Therefore, we multiply each element by -1 to make it negative
+        CUBLAS_CALL( cublasSscal(cublasHandle, numSamples * numCenters, &negOne, deviceDist, one) );
+        wrapperMatrixArgMaxRowKernel(deviceDist, numSamples, numCenters, deviceDummyArgMaxRow, deviceMembership);
 
         // Save the result of old centers
         CUDA_CALL( cudaMemcpy(deviceOldCenters, deviceCenters, sizeof(float) * numCenters * numFeatures, cudaMemcpyDeviceToDevice) );
-        CUDA_CALL( cudaMemset(deviceCenters, 0, sizeof(float) * numCenters * numFeatures));
 
         // Update the center estimation
-        numBlock = min(65535, ((numSamples) + BLOCKWIDTH - 1) / BLOCKWIDTH);
-        numBytesSharedMemory = BLOCKWIDTH * sizeof(float) * numFeatures + BLOCKWIDTH * sizeof(float);
-        if (numBytesSharedMemory > MAXSHAREDMEMBYTES) {
-            assert(false && "No enough shared memory");
-        }
-
-        for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
-            CUDA_CALL( cudaMemset(deviceSamplesCount, 0, sizeof(int)) );
-            updateCentersKernel<<<numBlock, BLOCKWIDTH, numBytesSharedMemory>>>(deviceX, deviceMembership, deviceCenters, deviceSamplesCount, idxCenter, numSamples, numFeatures, numCenters);
-            CUDA_CALL( cudaMemcpy(samplesCount, deviceSamplesCount, sizeof(int), cudaMemcpyDeviceToHost) );
-            if (*samplesCount == 0) {
-                // Empty cluster, we keep it unchanged
-                CUBLAS_CALL( cublasScopy(cublasHandle, numFeatures, deviceOldCenters + idxCenter, numCenters, deviceCenters + idxCenter, numCenters) );
-            } else {
-                float scale = 1.0 / (*samplesCount);
-                CUBLAS_CALL( cublasSscal(cublasHandle, numFeatures, &scale, deviceCenters + idxCenter, numCenters) );
-            }
-        }
+		for (int idxCenter = 0; idxCenter < numCenters; idxCenter++) {
+			// We use cublas functions + a mask vector to perform update
+			wrapperGenerateMaskVectorKernel(deviceMembership, idxCenter, numSamples, deviceMaskVec);
+			float numSamplesThisClass{0.0};
+			CUBLAS_CALL( cublasSasum(cublasHandle, numSamples, deviceMaskVec, one, &numSamplesThisClass) );
+			if (numSamplesThisClass == 0.0) {
+				// Empty cluster, keep it unchanged
+				// Do nothing
+			} else {
+				float denominator{float{1.0} / numSamplesThisClass};
+				CUBLAS_CALL( cublasSgemv(cublasHandle, CUBLAS_OP_T, numSamples, numFeatures, &denominator, deviceX, numSamples, deviceMaskVec, one, &zero, deviceCenters + idxCenter, numCenters) );
+			}
+		}
 
         // Test for coverage
         iterationCount++;
