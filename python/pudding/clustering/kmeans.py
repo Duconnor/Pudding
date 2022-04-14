@@ -72,6 +72,13 @@ class KMeans(_BaseModel):
         np_X = X.astype(np.float32)
         n_samples, n_features = np_X.shape
 
+        # Compute a dataset dependent tolerance
+        _tol = 0
+        if self.tol == 0:
+            _tol = 0
+        else:
+            _tol = np.mean(np.var(np_X, axis=0)) * self.tol
+
         # Prepare the initial centers
         if initial_centers is None:
             np_initial_centers = np.array(np_X[np.random.choice(n_samples, self.n_clusters, replace=False)]).astype(np.float32)
@@ -102,7 +109,7 @@ class KMeans(_BaseModel):
 
         # Call the function
         c_n_iter = ctypes.c_int(n_iter)
-        c_kmeans(np_X, np_initial_centers, n_samples, n_features, self.n_clusters, self.max_iter, self.tol, self.cuda_enabled, np_centers, np_membership, ctypes.byref(c_n_iter))
+        c_kmeans(np_X, np_initial_centers, n_samples, n_features, self.n_clusters, self.max_iter, _tol, self.cuda_enabled, np_centers, np_membership, ctypes.byref(c_n_iter))
         n_iter = c_n_iter.value
 
         self.centers = np_centers
