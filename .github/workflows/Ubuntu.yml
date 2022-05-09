@@ -60,8 +60,4 @@ jobs:
     - name: Build
       working-directory: ${{ env.build_dir }}
       run: cmake --build . --target all --verbose
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      run: cmake --build . --target test
       
