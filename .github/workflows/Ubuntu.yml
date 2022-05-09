@@ -15,9 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            cuda: "11.3"
-            gcc: 10
+          - os: ubuntu-20.04
+            gcc: 9
+            python-version: "3.8"
     env:
       build_dir: "build"
       config: "Release"
@@ -25,11 +25,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install CUDA
-      env:
-        cuda: ${{ matrix.cuda }}
-      run: ./scripts/install_cuda_ubuntu.sh
-      shell: bash
+    - uses: Jimver/cuda-toolkit@v0.2.5
+      id: cuda-toolkit
+      with:
+        cuda: '11.5.1'
     
     - name: Install/Select gcc and g++
       run: |
@@ -57,11 +56,18 @@ jobs:
             echo "----"
           fi
 
-    - name: Build
+    - name: Build the Shared Library
       working-directory: ${{ env.build_dir }}
-      run: cmake --build . --target all --verbose -j 'nproc'
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      run: cmake --build . --target test
+      run: cmake --build . --target all --verbose
       
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python Binding
+      run: |
+          python -m pip install --upgrade pip
+          cd python
+          python setup.py install
+
