@@ -17,13 +17,13 @@ Specifically, I randonly sample points in a 3D space using the ```make_blobs``` 
 
 |Number of Samples|Sci-kit Run Time (sec)|GPU Run Time (sec)|Speedup|
 |:-:|:-:|:-:|:-:|
-|1000|0.023|0.121|0.188x|
-|10000|0.264|0.303|0.872x|
-|30000|0.807|0.361|2.237x|
-|50000|3.576|1.868|1.915x|
-|100000|3.956|1.853|2.135x|
+|1000|0.224|0.050|4.482x|
+|10000|2.859|0.174|16.420x|
+|30000|2.762|0.230|11.998x|
+|50000|12.199|0.870|14.021x|
+|100000|10.059|0.750|13.404x|
 
-As we can see, compared to a fully optimized CPU version like the implementation in scikit-learn, the GPU version is still 2 times faster as the dataset gets larger.
+As we can see, compared to a fully optimized CPU version like the implementation in scikit-learn, the GPU version is about 14 times faster in average as the dataset gets larger.
 
 <div align=center>
 <img src="../../../assets/kmeans_benchmark_res.jpg">
@@ -34,7 +34,7 @@ As we can see, compared to a fully optimized CPU version like the implementation
 
 One interesting application of the KMeans algorithm is image quantization. The task is simple, given an image that has many different colors in it, we perform KMeans clustering on the pixels in the image and discover a small set of clusters (e.g. 64). Then for every pixel, we use its corresponding cluster center to replace its original value. By dong so, we are able to use a much smaller number of colors to represent an image.
 
-The code corresponds to this example can be found in ```examples/clustering/kmeans/image_quantization.py```. Specifically, we perform KMeans clustering on all pixles in a 1080p high resolution image. For the exactly same task, **KMeans in scikit-learn uses 35 seconds while our implementation only uses 14 seconds**. Check out the code and run the example yourself!
+The code corresponds to this example can be found in ```examples/clustering/kmeans/image_quantization.py```. Specifically, we perform KMeans clustering on all pixles in a 1080p high resolution image. For the exactly same task, **KMeans in scikit-learn uses 47 seconds while our implementation only uses 17 seconds**. Check out the code and run the example yourself!
 
 ```python
 '''
@@ -99,12 +99,12 @@ quantized_image.save('quantized_sklearn.jpg')
 
 <div align=center>
 <img src="../../../assets/quantized_sklearn.jpg">
-<center style="font-size:14px;color:#C0C0C0;">Scikit-learn result.</center>
+<center style="font-size:14px;color:#C0C0C0;">Scikit-learn's result.</center>
 </div> 
 
 <div align=center>
 <img src="../../../assets/quantized_pudding.jpg">
-<center style="font-size:14px;color:#C0C0C0;">Pudding result.</center>
+<center style="font-size:14px;color:#C0C0C0;">Pudding's result.</center>
 </div> 
 
 
